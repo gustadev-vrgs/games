@@ -1,6 +1,9 @@
 [gd_scene load_steps=2 format=3]
+
 [ext_resource path="res://scripts/shared/card_visual.gd" type="Script" id="1"]
+
 [node name="CardVisual" type="Button"]
-custom_minimum_size = Vector2(90, 130)
-text = "Carta"
+custom_minimum_size = Vector2(88, 126)
+focus_mode = 2
+flat = true
 script = ExtResource("1")

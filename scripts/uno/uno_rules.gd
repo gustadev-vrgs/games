@@ -85,7 +85,7 @@ func _index(cards: Array, uid: int) -> int:
 func build_public_snapshot(state: Dictionary) -> Dictionary:
 	var counts: Dictionary = {}
 	for id in state.players: counts[id] = state.hands[id].size()
-	return {"game_id":"uno","phase":state.phase,"current_player":state.players[state.current_index],"active_color":state.active_color,"direction":state.direction,"top_card":state.discard.back().duplicate(true),"card_counts":counts,"winner":state.winner,"state_version":state.state_version}
+	return {"game_id":"uno","phase":state.phase,"current_player":state.players[state.current_index],"active_color":state.active_color,"direction":state.direction,"top_card":state.discard.back().duplicate(true),"card_counts":counts,"draw_count":state.draw_pile.size(),"winner":state.winner,"state_version":state.state_version}
 func build_private_snapshot(state: Dictionary, peer_id: int) -> Dictionary: return {"peer_id":peer_id,"hand":state.hands.get(peer_id,[]).duplicate(true),"drawn_uid":state.drawn_uid,"state_version":state.state_version}
 func validate_invariants(state: Dictionary) -> String:
 	var cards: Array[Dictionary] = []; cards.append_array(state.draw_pile); cards.append_array(state.discard)

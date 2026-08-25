@@ -1,0 +1,5 @@
+
+# Exportações locais
+build/
+*.exe
+*.pck

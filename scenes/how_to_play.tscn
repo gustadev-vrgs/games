@@ -1,0 +1,54 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource path="res://scripts/ui/how_to_play.gd" type="Script" id="1"]
+
+[node name="HowToPlay" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1")
+screen_title = "Como jogar"
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 40.0
+offset_top = 24.0
+offset_right = -40.0
+offset_bottom = -24.0
+[node name="VBox" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+[node name="Title" type="Label" parent="Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "Como jogar"
+horizontal_alignment = 1
+[node name="Tabs" type="TabContainer" parent="Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+[node name="Uno" type="Label" parent="Margin/VBox/Tabs"]
+layout_mode = 2
+text = "Combine cor, número ou símbolo. Curingas escolhem a cor. O +4 só pode ser usado sem carta da cor ativa. Após comprar, jogue apenas a carta comprada ou passe. Declare Uno ao ficar com uma carta."
+autowrap_mode = 2
+[node name="Caxeta" type="Label" parent="Margin/VBox/Tabs"]
+layout_mode = 2
+text = "Compre do monte ou descarte e depois descarte uma carta. Forme trincas de naipes diferentes ou sequências do mesmo naipe. A vira define o curinga. Bata com nove cartas ao descartar, ou com dez se houver sequência de quatro ou mais."
+autowrap_mode = 2
+[node name="Truco Paulista" type="Label" parent="Margin/VBox/Tabs"]
+layout_mode = 2
+text = "Ganhe duas de três vazas. A carta após a vira define a manilha; entre manilhas, Paus, Copas, Espadas e Ouros. Peça Truco e aumente a mão para 3, 6, 9 ou 12 pontos. Em duplas, seu parceiro fica no assento oposto."
+autowrap_mode = 2
+[node name="Rede LAN" type="Label" parent="Margin/VBox/Tabs"]
+layout_mode = 2
+text = "O host cria a sala e também joga. Os demais usam o IPv4 LAN e a mesma porta UDP. Permita o jogo no Firewall, use a mesma build e confirme que todos estão na mesma rede sem isolamento de clientes."
+autowrap_mode = 2
+[node name="Back" type="Button" parent="Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Voltar"
+[node name="Status" type="Label" parent="Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2

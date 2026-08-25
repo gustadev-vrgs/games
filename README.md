@@ -39,3 +39,13 @@ Confirme versão idêntica, IP/porta, mesma rede, firewall UDP e ausência de is
 ## Assets e licença
 
 A interface usa apenas controles, texto e símbolos do sistema; não há asset externo ou áudio licenciado.
+
+## Interface e controles
+
+A apresentação usa mesa de feltro verde-petróleo, painéis translúcidos, detalhes dourados e cartas desenhadas proceduralmente. Cartas tradicionais têm frente marfim, rank e naipe; cartas Uno usam cores vivas e símbolos próprios; o verso geométrico “HC” nunca revela dados. A mesa se reorganiza por `Container`, a mão possui rolagem horizontal, adversários mostram assento e até cinco miniaturas de verso com a contagem real.
+
+- **Uno:** selecione uma carta, marque **Declarar Uno** quando necessário, escolha a cor antes de um curinga e use **Jogar carta**; **Comprar** e **Passar** são contextuais.
+- **Caxeta:** use **Comprar do monte/descarte**, selecione e descarte; **Bater ao descartar** viaja na mesma ação atômica e **Bater com 10** valida a mão completa.
+- **Truco:** selecione e jogue; durante pedido, a equipe respondente usa **Aceitar**, **Correr** ou **Aumentar**. Vira, manilha, vaza, valor da mão e placar ficam no centro.
+
+O menu inclui **Como jogar**, com abas para os três jogos e LAN. Nenhuma tela final apresenta snapshot, JSON ou dicionário interno. Consulte [`TEST_MATRIX.md`](TEST_MATRIX.md) e [`INITIAL_INVENTORY.md`](INITIAL_INVENTORY.md).

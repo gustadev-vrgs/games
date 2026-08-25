@@ -19,3 +19,18 @@
 15. Em dois PCs Windows 10/11 na mesma LAN, permita UDP no firewall, copie a mesma build, use o IPv4 LAN exibido pelo host (não `127.0.0.1`) e repita uma partida completa de cada jogo; use quatro instâncias/PCs para Truco 2x2.
 16. Instale templates e exporte: `godot --headless --path . --export-release "Windows Desktop" build/HubDeCartas.exe`.
 17. Abra `build/HubDeCartas.exe` nos dois PCs e repita conexão, desconexão, retorno ao lobby e encerramento.
+
+## Roteiro final em dois computadores
+
+1. Instale/copie exatamente a mesma build nos dois computadores e confirme que ambos estão na mesma LAN.
+2. No Firewall do Windows, permita o executável e tráfego UDP na porta escolhida.
+3. No PC host, crie a sala; confirme que ele aparece no assento 1 e continua como jogador.
+4. No cliente, informe o IPv4 exibido e a porta; permaneça no lobby por 30 segundos e confira lista/assentos.
+5. Inicie o jogo, execute turnos nos dois lados, conclua a partida e volte ao lobby pelo host.
+6. Inicie uma segunda partida e confirme mãos, placar, vidas e versão reiniciados.
+7. Desconecte um cliente no lobby; confirme remoção e reorganização. Repita durante partida; confirme pausa.
+8. Desconecte o host; confirme nos clientes limpeza da mão, encerramento do peer e retorno seguro ao menu.
+9. Repita os passos 3–8 para Uno, Caxeta e Truco 1x1.
+10. Para Truco 2x2, use quatro instâncias/PCs, confirme equipes 0/2 e 1/3, parceiro oposto e ordem dos quatro assentos.
+
+Se uma máquina usa `10.x.x.x` e a outra `172.16.x.x`–`172.31.x.x`, elas provavelmente estão em sub-redes/VLANs diferentes. Compare máscara e gateway, desative VPN, procure “isolamento de clientes/AP” no roteador e peça ao administrador uma VLAN comum ou roteamento/liberação UDP entre as redes. `127.0.0.1` nunca alcança outro computador.

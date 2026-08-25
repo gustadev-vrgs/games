@@ -1,6 +1,6 @@
 extends Node
 signal transition_finished(screen_id: String)
-const SCREENS: Dictionary = {"menu":"res://scenes/main_menu.tscn","host":"res://scenes/host_setup.tscn","join":"res://scenes/join_setup.tscn","lobby":"res://scenes/lobby.tscn","loading":"res://scenes/loading_match.tscn","results":"res://scenes/results_screen.tscn","uno":"res://scenes/uno/uno_game.tscn","caxeta":"res://scenes/caxeta/caxeta_game.tscn","truco":"res://scenes/truco/truco_game.tscn"}
+const SCREENS: Dictionary = {"menu":"res://scenes/main_menu.tscn","help":"res://scenes/how_to_play.tscn","host":"res://scenes/host_setup.tscn","join":"res://scenes/join_setup.tscn","lobby":"res://scenes/lobby.tscn","loading":"res://scenes/loading_match.tscn","results":"res://scenes/results_screen.tscn","uno":"res://scenes/uno/uno_game.tscn","caxeta":"res://scenes/caxeta/caxeta_game.tscn","truco":"res://scenes/truco/truco_game.tscn"}
 var transition_in_progress: bool = false
 func request_transition(screen_id: String, payload: Dictionary = {}) -> bool:
 	if transition_in_progress or not SCREENS.has(screen_id): return false
