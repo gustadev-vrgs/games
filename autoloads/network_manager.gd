@@ -8,6 +8,10 @@ signal session_interrupted(reason:String)
 enum SessionPhase { OFFLINE, LOBBY, LOCKED, LOADING, MATCH_ACTIVE, MATCH_PAUSED, MATCH_FINISHED }
 var phase:SessionPhase=SessionPhase.OFFLINE;var players:Dictionary={};var config:Dictionary={};var session_id:String="";var match_id:int=0;var state_version:int=0
 var _peer:ENetMultiplayerPeer;var _connection_timer:Timer;var _scene_timer:Timer;var _ready_peers:Dictionary={};var _action_cache:Dictionary={};var _controller:BaseMatchController;var _next_action_id:int=1
+var _reveal_timer: Timer
+var _reveal_token: int = 0
+var _processed_departures: Dictionary = {}
+var _shutting_down: bool = false
 func _ready()->void:
 	multiplayer.peer_connected.connect(_on_peer_connected);multiplayer.peer_disconnected.connect(_on_peer_disconnected);multiplayer.connected_to_server.connect(_on_connected);multiplayer.connection_failed.connect(_on_connection_failed);multiplayer.server_disconnected.connect(_on_server_disconnected)
 func create_server(nickname:String,game_id:String,settings:Dictionary,port:int)->String:
@@ -41,10 +45,29 @@ func _on_server_disconnected()->void:clean_session();session_interrupted.emit("O
 func _on_peer_connected(_id:int)->void:pass
 func _on_peer_disconnected(id:int)->void:
 	if not multiplayer.is_server():return
-	if players.erase(id):
-		_reseat()
-		if phase==SessionPhase.LOBBY:_sync_lobby()
-		elif phase in [SessionPhase.LOADING,SessionPhase.MATCH_ACTIVE]:phase=SessionPhase.MATCH_PAUSED;notify_interruption.rpc("Jogador desconectado; partida pausada.");session_interrupted.emit("Jogador desconectado; partida pausada.")
+	_process_departure(id, "")
+
+@rpc("any_peer", "call_remote", "reliable") func notify_voluntary_leave() -> void:
+	if not multiplayer.is_server():
+		return
+	_process_departure(multiplayer.get_remote_sender_id(), "voluntary")
+
+func _process_departure(id: int, _cause: String) -> void:
+	if _processed_departures.has(id) or not players.has(id):
+		return
+	_processed_departures[id] = true
+	var departed_name: String = String(players[id].get("display_name", "Jogador"))
+	players.erase(id)
+	_reseat()
+	if phase in [SessionPhase.LOADING, SessionPhase.MATCH_ACTIVE, SessionPhase.MATCH_PAUSED]:
+		_cancel_match_resources()
+		phase = SessionPhase.LOBBY
+		var reason: String = "%s saiu. A partida foi encerrada." % departed_name
+		notify_return_to_lobby.rpc(reason)
+		SessionState.reset_match()
+		SceneRouter.request_transition("lobby")
+		session_interrupted.emit(reason)
+	_sync_lobby()
 @rpc("any_peer","call_remote","reliable") func register_player(protocol:int,nickname:String)->void:
 	var sender:int=multiplayer.get_remote_sender_id()
 	if not multiplayer.is_server():return
@@ -179,6 +202,19 @@ func _broadcast_snapshots(public:Dictionary,private:Dictionary)->void:
 		var snapshot:Dictionary=private[id];snapshot.session_id=session_id;snapshot.match_id=match_id
 		if id==1:SessionState.accept_private_snapshot(snapshot);private_snapshot_received.emit(snapshot)
 		else:receive_private_snapshot.rpc_id(id,snapshot)
+	if multiplayer.is_server() and String(public.get("game_id", "")) == "truco" and int(public.get("phase", -1)) == TrucoRules.Phase.TRICK_REVEAL:
+		_schedule_reveal(int(public.get("state_version", -1)))
+
+func _schedule_reveal(version: int) -> void:
+	_cancel_timer(_reveal_timer)
+	_reveal_token = version
+	_reveal_timer = _timer(2.5, func() -> void: _advance_reveal(version))
+
+func _advance_reveal(token: int) -> void:
+	if token != _reveal_token or phase != SessionPhase.MATCH_ACTIVE or state_version != token:
+		return
+	if is_instance_valid(_controller):
+		_controller.advance_authoritative_transition()
 @rpc("authority","call_remote","reliable") func receive_public_snapshot(snapshot:Dictionary)->void:
 	if SessionState.accept_public_snapshot(snapshot):state_version=snapshot.state_version;public_snapshot_received.emit(snapshot)
 @rpc("authority","call_remote","reliable") func receive_private_snapshot(snapshot:Dictionary)->void:
@@ -196,11 +232,50 @@ func return_to_lobby()->void:
 	if is_instance_valid(_controller):_controller.queue_free()
 	SessionState.reset_match();state_version=0;_action_cache.clear();phase=SessionPhase.LOBBY;return_lobby.rpc();SceneRouter.request_transition("lobby")
 @rpc("authority","call_remote","reliable") func return_lobby()->void:SessionState.reset_match();phase=SessionPhase.LOBBY;SceneRouter.request_transition("lobby")
+@rpc("authority", "call_remote", "reliable") func notify_return_to_lobby(reason: String) -> void:
+	SessionState.reset_match()
+	phase = SessionPhase.LOBBY
+	session_interrupted.emit(reason)
+	SceneRouter.request_transition("lobby")
 func abort_match()->void:if multiplayer.is_server():return_to_lobby()
+func leave_room() -> void:
+	if _shutting_down:
+		return
+	_shutting_down = true
+	if not multiplayer.is_server() and phase != SessionPhase.OFFLINE:
+		notify_voluntary_leave.rpc_id(1)
+	call_deferred("_finish_local_departure")
+
+func close_room() -> void:
+	if _shutting_down:
+		return
+	_shutting_down = true
+	if multiplayer.is_server():
+		host_closed_room.rpc()
+	call_deferred("_finish_local_departure")
+
+func _finish_local_departure() -> void:
+	clean_session()
+	SceneRouter.request_transition("menu")
+
+@rpc("authority", "call_remote", "reliable") func host_closed_room() -> void:
+	clean_session()
+	session_interrupted.emit("O host encerrou a sala.")
+	SceneRouter.request_transition("menu")
+
+func _cancel_match_resources() -> void:
+	_reveal_token += 1
+	_cancel_timer(_reveal_timer)
+	if is_instance_valid(_controller):
+		_controller.queue_free()
+	_controller = null
+	_ready_peers.clear()
+	_action_cache.clear()
 func clean_session()->void:
-	_cancel_timer(_connection_timer);_cancel_timer(_scene_timer)
-	if is_instance_valid(_controller):_controller.queue_free()
+	_cancel_timer(_connection_timer);_cancel_timer(_scene_timer);_cancel_match_resources()
 	multiplayer.multiplayer_peer=OfflineMultiplayerPeer.new();_peer=null;players.clear();config.clear();_ready_peers.clear();_action_cache.clear();session_id="";match_id=0;state_version=0;phase=SessionPhase.OFFLINE;SessionState.reset_all()
+	_processed_departures.clear()
+	_shutting_down = false
 func _cancel_timer(timer:Timer)->void:
 	if is_instance_valid(timer):timer.stop();timer.queue_free()
 func _reseat()->void:

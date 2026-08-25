@@ -28,6 +28,7 @@ var interactable: bool = true
 var playable_hint: bool = false
 var pending: bool = false
 var recently_played: bool = false
+var winning_card: bool = false
 var _hovered: bool = false
 var _visual_lift: float = 0.0:
 	set(value):
@@ -70,15 +71,24 @@ func set_recently_played(value: bool) -> void:
 	recently_played = value
 	_refresh()
 
+func set_winning_card(value: bool) -> void:
+	winning_card = value
+	if winning_card:
+		scale = Vector2(1.06, 1.06)
+		var pulse: Tween = create_tween().set_loops().set_trans(Tween.TRANS_SINE)
+		pulse.tween_property(self, "modulate", Color(1.0, 0.9, 0.55), 0.35)
+		pulse.tween_property(self, "modulate", Color.WHITE, 0.35)
+	_refresh()
+
 func _draw() -> void:
 	var bounds: Rect2 = Rect2(Vector2(4.0, 16.0 - _visual_lift), size - Vector2(8.0, 22.0))
 	var shadow: Rect2 = Rect2(bounds.position + Vector2(3.0, 4.0), bounds.size)
 	draw_style_box(_box(Color(0.0, 0.0, 0.0, 0.35), Color.TRANSPARENT, 12), shadow)
 	var background: Color = _background_color()
-	var border: Color = Color("f6c945") if selected or recently_played else Color("d9d5c8")
+	var border: Color = Color("ffd45a") if winning_card or selected or recently_played else Color("d9d5c8")
 	if playable_hint and face_up and not pending and not selected:
 		border = Color("55d98b")
-	draw_style_box(_box(background, border, 12, 4 if selected else 3), bounds)
+	draw_style_box(_box(background, border, 12, 5 if winning_card else (4 if selected else 3)), bounds)
 	if not face_up:
 		_draw_back(bounds)
 		return

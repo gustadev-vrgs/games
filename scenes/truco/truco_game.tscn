@@ -84,6 +84,20 @@ text = "Preparando a mesa…"
 unique_name_in_owner = true
 layout_mode = 2
 alignment = 1
+[node name="HistoryTitle" type="Label" parent="Margin/Main/Table/Center"]
+layout_mode = 2
+text = "Histórico da mão"
+horizontal_alignment = 1
+[node name="HistoryScroll" type="ScrollContainer" parent="Margin/Main/Table/Center"]
+custom_minimum_size = Vector2(0, 92)
+layout_mode = 2
+vertical_scroll_mode = 2
+[node name="History" type="Label" parent="Margin/Main/Table/Center/HistoryScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 2
+text = "Nenhuma vaza concluída."
 
 [node name="Banner" type="Label" parent="Margin/Main"]
 unique_name_in_owner = true
@@ -131,3 +145,24 @@ text = "Correr"
 [node name="Raise" type="Button" parent="Margin/Main/Actions"]
 unique_name_in_owner = true
 text = "Aumentar"
+[node name="RequestPanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -90.0
+offset_right = 260.0
+offset_bottom = 90.0
+grow_horizontal = 2
+grow_vertical = 2
+[node name="RequestText" type="Label" parent="RequestPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+text = "Pedido de Truco"

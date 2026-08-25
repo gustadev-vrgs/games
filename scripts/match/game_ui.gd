@@ -21,6 +21,7 @@ var cards_by_uid: Dictionary = {}
 var public_snapshot: Dictionary = {}
 var private_snapshot: Dictionary = {}
 var _pending_timer: Timer
+var _leave_dialog: ConfirmationDialog
 
 @onready var hand: HBoxContainer = %Hand
 @onready var opponents: HBoxContainer = %Opponents
@@ -33,6 +34,8 @@ func _ready() -> void:
 	_connect_once(NetworkManager.action_answered, _on_action_answered)
 	_connect_once(NetworkManager.session_interrupted, _on_session_interrupted)
 	_connect_once(%Leave.pressed, _leave)
+	%Leave.text = "Encerrar sala" if multiplayer.is_server() else "Sair da sala"
+	_create_leave_dialog()
 	_pending_timer = Timer.new()
 	_pending_timer.one_shot = true
 	_pending_timer.wait_time = ACTION_TIMEOUT_SECONDS
@@ -140,6 +143,19 @@ func _add_table_card(card: Dictionary, caption: String, face_up: bool = true) ->
 	group.add_child(visual)
 	visual.configure(card, face_up)
 	visual.set_state(false, false, false, false)
+	table_cards.add_child(group)
+
+func _add_table_card_with_state(card: Dictionary, caption: String, winning: bool) -> void:
+	var group: VBoxContainer = VBoxContainer.new()
+	var label: Label = Label.new()
+	label.text = caption
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	group.add_child(label)
+	var visual: CardVisual = CARD_SCENE.instantiate() as CardVisual
+	group.add_child(visual)
+	visual.configure(card, true)
+	visual.set_state(false, false, false, false)
+	visual.set_winning_card(winning)
 	table_cards.add_child(group)
 
 func _select_card(uid: int) -> void:
@@ -260,8 +276,21 @@ func _clear_children(container: Node) -> void:
 		child.queue_free()
 
 func _leave() -> void:
-	if multiplayer.is_server():
-		NetworkManager.abort_match()
-	else:
-		NetworkManager.clean_session()
-	SceneRouter.request_transition("lobby" if multiplayer.is_server() else "menu")
+	_leave_dialog.popup_centered(Vector2i(520, 180))
+
+func _create_leave_dialog() -> void:
+	_leave_dialog = ConfirmationDialog.new()
+	_leave_dialog.title = "Encerrar sala" if multiplayer.is_server() else "Sair da sala"
+	_leave_dialog.dialog_text = "Deseja encerrar a sala? Todos os jogadores serão desconectados." if multiplayer.is_server() else "Deseja sair da sala? A partida atual será interrompida."
+	_leave_dialog.ok_button_text = "Encerrar sala" if multiplayer.is_server() else "Sair da sala"
+	_leave_dialog.cancel_button_text = "Cancelar"
+	_leave_dialog.confirmed.connect(func() -> void:
+		if is_instance_valid(_pending_timer):
+			_pending_timer.stop()
+		pending_action = -1
+		if multiplayer.is_server():
+			NetworkManager.close_room()
+		else:
+			NetworkManager.leave_room()
+	)
+	add_child(_leave_dialog)
