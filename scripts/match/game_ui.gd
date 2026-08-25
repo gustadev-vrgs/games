@@ -24,7 +24,7 @@ var _pending_timer: Timer
 var _leave_dialog: ConfirmationDialog
 
 @onready var hand: HBoxContainer = %Hand
-@onready var opponents: HBoxContainer = %Opponents
+@onready var opponents: HFlowContainer = %Opponents
 @onready var table_cards: HBoxContainer = %TableCards
 
 func _ready() -> void:

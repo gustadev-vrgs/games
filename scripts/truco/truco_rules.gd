@@ -40,8 +40,16 @@ func next_raise_value(value: int) -> int:
 	var index: int = VALUES.find(value)
 	return VALUES[index + 1] if index >= 0 and index + 1 < VALUES.size() else 0
 
-func create_initial_state(peer_ids: Array, rng: RandomNumberGenerator) -> Dictionary:
-	var state: Dictionary = {"game_id":"truco","players":peer_ids.duplicate(),"hands":{},"scores":[0,0],"dealer_index":0,"state_version":0,"winner":-1,"match_end_emitted":false,"total_cards":40,"hand_number":0,"trick_history":[]}
+func create_initial_state(peer_ids: Array, rng: RandomNumberGenerator, config: Dictionary = {}) -> Dictionary:
+	var team_by_peer: Dictionary = {}
+	var configured: Dictionary = config.get("team_by_peer", {}) as Dictionary
+	for index: int in peer_ids.size():
+		var peer_id: int = int(peer_ids[index])
+		team_by_peer[peer_id] = int(configured.get(peer_id, TEAM_A if index in [0, 2] else TEAM_B))
+	var team_members: Dictionary = {0: [], 1: []}
+	for peer_id: int in peer_ids:
+		team_members[int(team_by_peer[peer_id])].append(peer_id)
+	var state: Dictionary = {"game_id":"truco","players":peer_ids.duplicate(),"team_by_peer":team_by_peer,"team_members":team_members,"hands":{},"scores":[0,0],"dealer_index":0,"state_version":0,"winner":-1,"match_end_emitted":false,"total_cards":40,"hand_number":0,"trick_history":[]}
 	_start_hand(state, rng)
 	return state
 
@@ -67,6 +75,8 @@ func _start_hand(state: Dictionary, rng: RandomNumberGenerator) -> void:
 	state.requesting_peer = -1
 	state.requesting_team = -1
 	state.responding_team = -1
+	state.responding_peer = -1
+	state.action_history = []
 	state.last_raise_team = -1
 	state.interrupted_index = -1
 	state.pending_resolution = UNDECIDED
@@ -74,10 +84,14 @@ func _start_hand(state: Dictionary, rng: RandomNumberGenerator) -> void:
 	state.phase = Phase.PLAYING_TRICK
 	state.hand_end_emitted = false
 
+func team_for_player(state: Dictionary, peer_id: int) -> int:
+	var mapping: Dictionary = state.get("team_by_peer", {}) as Dictionary
+	return int(mapping.get(peer_id, -1))
+
 func validate_action(state: Dictionary, actor_id: int, action: Dictionary) -> Dictionary:
 	if actor_id not in state.players:
 		return ActionResult.rejected("UNREGISTERED_PEER")
-	var team: int = state.players.find(actor_id) % 2
+	var team: int = team_for_player(state, actor_id)
 	var kind: String = String(action.get("type", ""))
 	if state.phase == Phase.WAITING_TRUCO_RESPONSE:
 		if kind not in ["ACCEPT", "RUN", "RAISE"] or team != state.responding_team:
@@ -104,7 +118,7 @@ func apply_action(state: Dictionary, actor_id: int, action: Dictionary, rng: Ran
 	var result: Dictionary = validate_action(state, actor_id, action)
 	if not result.accepted:
 		return result
-	var team: int = state.players.find(actor_id) % 2
+	var team: int = team_for_player(state, actor_id)
 	match String(action.type):
 		"REQUEST_TRUCO":
 			state.target_value = next_raise_value(int(state.accepted_value))
@@ -113,19 +127,26 @@ func apply_action(state: Dictionary, actor_id: int, action: Dictionary, rng: Ran
 			state.responding_team = 1 - team
 			state.interrupted_index = state.current_index
 			state.phase = Phase.WAITING_TRUCO_RESPONSE
+			state.action_history.append({"type":"REQUEST","peer_id":actor_id,"team":team,"value":state.target_value})
 		"ACCEPT":
+			state.responding_peer = actor_id
+			state.action_history.append({"type":"ACCEPT","peer_id":actor_id,"team":team,"value":state.target_value})
 			state.accepted_value = state.target_value
 			state.last_raise_team = state.requesting_team
 			_clear_request(state)
 			state.current_index = state.interrupted_index
 			state.phase = Phase.PLAYING_TRICK
 		"RAISE":
+			state.responding_peer = actor_id
+			state.action_history.append({"type":"RAISE","peer_id":actor_id,"team":team,"value":next_raise_value(int(state.target_value))})
 			var previous_requesting_team: int = int(state.requesting_team)
 			state.requesting_peer = actor_id
 			state.requesting_team = state.responding_team
 			state.responding_team = previous_requesting_team
 			state.target_value = next_raise_value(int(state.target_value))
 		"RUN":
+			state.responding_peer = actor_id
+			state.action_history.append({"type":"RUN","peer_id":actor_id,"team":team,"value":state.accepted_value})
 			_finish_hand(state, int(state.requesting_team), int(state.accepted_value), rng)
 		"PLAY_CARD":
 			_play_card(state, actor_id, int(action.card_uid))
@@ -145,7 +166,7 @@ func _play_card(state: Dictionary, actor_id: int, uid: int) -> void:
 		if hand[index].uid == uid:
 			card = hand.pop_at(index)
 			break
-	state.played.append({"peer_id":actor_id,"team":state.players.find(actor_id)%2,"card":card})
+	state.played.append({"peer_id":actor_id,"team":team_for_player(state, actor_id),"card":card})
 	if state.played.size() < state.players.size():
 		state.current_index = (state.current_index + 1) % state.players.size()
 		return
@@ -205,10 +226,10 @@ func build_public_snapshot(state: Dictionary) -> Dictionary:
 	var counts: Dictionary = {}
 	for id: int in state.players:
 		counts[id] = state.hands[id].size()
-	return {"game_id":"truco","phase":state.phase,"current_player":state.players[state.current_index],"turn_card":state.turn_card.duplicate(true),"manilha":state.manilha,"played":state.played.duplicate(true),"scores":state.scores.duplicate(),"accepted_value":state.accepted_value,"target_value":state.target_value,"requesting_peer":state.requesting_peer,"requesting_team":state.requesting_team,"responding_team":state.responding_team,"last_raise_team":state.last_raise_team,"next_raise_value":next_raise_value(int(state.target_value if state.phase==Phase.WAITING_TRUCO_RESPONSE else state.accepted_value)),"hand_number":state.hand_number,"trick_number":state.trick_number,"trick_history":state.trick_history.duplicate(true),"reveal_result":state.reveal_result.duplicate(true),"card_counts":counts,"winner":state.winner,"state_version":state.state_version}
+	return {"game_id":"truco","players":state.players.duplicate(),"turn_order":state.players.duplicate(),"team_by_peer":state.team_by_peer.duplicate(true),"team_members":state.team_members.duplicate(true),"phase":state.phase,"current_player":state.players[state.current_index],"turn_card":state.turn_card.duplicate(true),"manilha":state.manilha,"played":state.played.duplicate(true),"scores":state.scores.duplicate(),"accepted_value":state.accepted_value,"target_value":state.target_value,"requesting_peer":state.requesting_peer,"responding_peer":state.responding_peer,"action_history":state.action_history.duplicate(true),"requesting_team":state.requesting_team,"responding_team":state.responding_team,"last_raise_team":state.last_raise_team,"next_raise_value":next_raise_value(int(state.target_value if state.phase==Phase.WAITING_TRUCO_RESPONSE else state.accepted_value)),"hand_number":state.hand_number,"trick_number":state.trick_number,"trick_history":state.trick_history.duplicate(true),"reveal_result":state.reveal_result.duplicate(true),"card_counts":counts,"winner":state.winner,"state_version":state.state_version}
 
 func build_private_snapshot(state: Dictionary, peer_id: int) -> Dictionary:
-	return {"peer_id":peer_id,"hand":state.hands.get(peer_id,[]).duplicate(true),"team":state.players.find(peer_id)%2,"state_version":state.state_version}
+	return {"peer_id":peer_id,"hand":state.hands.get(peer_id,[]).duplicate(true),"team":team_for_player(state, peer_id),"state_version":state.state_version}
 
 func validate_invariants(state: Dictionary) -> String:
 	var cards: Array[Dictionary] = []

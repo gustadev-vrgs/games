@@ -33,3 +33,23 @@ func run(t:TestHelpers)->void:
 	var public: Dictionary = rules.build_public_snapshot(wild_state)
 	t.equal(public.last_play.chosen_color, "blue", "snapshot público sincroniza cor escolhida")
 	t.check(not public.last_play.has("hand"), "última jogada não contém mão privada")
+	var eight_ids: Array = [1, 2, 3, 4, 5, 6, 7, 8]
+	var eight: Dictionary = rules.create_initial_state(eight_ids, rng)
+	var dealt: int = 0
+	var private_uids: Dictionary = {}
+	for peer_id: int in eight_ids:
+		t.equal(eight.hands[peer_id].size(), 7, "Uno 8: sete cartas por pessoa")
+		dealt += eight.hands[peer_id].size()
+		var private_snapshot: Dictionary = rules.build_private_snapshot(eight, peer_id)
+		private_uids[peer_id] = private_snapshot.hand.map(func(card: Dictionary) -> int: return int(card.uid))
+	t.equal(dealt, 56, "Uno 8: 56 cartas distribuídas")
+	t.equal(rules.validate_invariants(eight), "OK", "Uno 8 conserva 108 cartas e UIDs")
+	t.equal(rules.build_public_snapshot(eight).card_counts.size(), 8, "snapshot possui oito contadores")
+	t.equal(private_uids.size(), 8, "oito snapshots privados separados")
+	eight.current_index = 7
+	rules._advance(eight)
+	t.equal(eight.current_index, 0, "turno fecha ciclo 8 para 1")
+	eight.direction = -1
+	eight.current_index = 0
+	rules._advance(eight)
+	t.equal(eight.current_index, 7, "sentido inverso fecha ciclo 1 para 8")

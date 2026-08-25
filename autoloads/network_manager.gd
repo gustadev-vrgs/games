@@ -21,7 +21,7 @@ func create_server(nickname:String,game_id:String,settings:Dictionary,port:int)-
 	_peer=ENetMultiplayerPeer.new();var error:Error=_peer.create_server(port,GameConstants.MAX_TRANSPORT_CLIENTS)
 	if error!=OK:_peer=null;return "SERVER_CREATE_FAILED"
 	multiplayer.multiplayer_peer=_peer;session_id="%s-%s"%[Time.get_unix_time_from_system(),randi()];phase=SessionPhase.LOBBY;config=settings.duplicate(true);config.game_id=game_id;config.port=port
-	players[1]={"peer_id":1,"display_name":name,"seat":0,"ready":true,"connected":true}
+	players[1]={"peer_id":1,"display_name":name,"seat":0,"team":-1,"ready":false,"connected":true}
 	SessionState.session_id=session_id
 	SessionState.game_id=game_id
 	SessionState.local_peer_id=1
@@ -61,6 +61,8 @@ func _process_departure(id: int, _cause: String) -> void:
 	_reseat()
 	if phase in [SessionPhase.LOADING, SessionPhase.MATCH_ACTIVE, SessionPhase.MATCH_PAUSED]:
 		_cancel_match_resources()
+		for remaining: Dictionary in players.values():
+			remaining["ready"] = false
 		phase = SessionPhase.LOBBY
 		var reason: String = "%s saiu. A partida foi encerrada." % departed_name
 		notify_return_to_lobby.rpc(reason)
@@ -73,10 +75,15 @@ func _process_departure(id: int, _cause: String) -> void:
 	if not multiplayer.is_server():return
 	if protocol!=GameConstants.PROTOCOL_VERSION:_reject_and_disconnect(sender,"PROTOCOL_MISMATCH");return
 	if phase!=SessionPhase.LOBBY:_reject_and_disconnect(sender,"MATCH_ALREADY_STARTED");return
-	if players.size()>=GameConstants.MAX_TOTAL_PLAYERS:_reject_and_disconnect(sender,"ROOM_FULL");return
+	if players.size() >= GameConstants.maximum_players_for(config):
+		_reject_and_disconnect(sender, "ROOM_FULL")
+		return
 	var clean:String=GameConstants.sanitize_nickname(nickname)
 	if clean.is_empty():_reject_and_disconnect(sender,"INVALID_MESSAGE");return
-	clean=_unique_name(clean);players[sender]={"peer_id":sender,"display_name":clean,"seat":players.size(),"ready":true,"connected":true};receive_session.rpc_id(sender,session_id,config,players.values());_sync_lobby()
+	clean = _unique_name(clean)
+	players[sender] = {"peer_id":sender,"display_name":clean,"seat":players.size(),"team":-1,"ready":false,"connected":true}
+	receive_session.rpc_id(sender, session_id, config, players.values())
+	_sync_lobby()
 func _unique_name(base:String)->String:
 	var names:Array=players.values().map(func(player:Dictionary)->String:return String(player.get("display_name", "")))
 	if base not in names:return base
@@ -113,13 +120,97 @@ func _normalize_player_list(raw_players:Array)->Array[Dictionary]:
 		if typeof(player.get("peer_id",null))!=TYPE_INT:return []
 		if typeof(player.get("display_name",null))!=TYPE_STRING:return []
 		if typeof(player.get("seat",null))!=TYPE_INT:return []
+		if typeof(player.get("team",null))!=TYPE_INT:return []
+		if int(player.get("team", -1)) not in [-1, 0, 1]:return []
 		if typeof(player.get("ready",null))!=TYPE_BOOL:return []
 		if typeof(player.get("connected",null))!=TYPE_BOOL:return []
 		normalized.append(player)
 	return normalized
+func request_team_change(team: int) -> String:
+	return _change_team(1, team) if multiplayer.is_server() else _send_team_request(team)
+
+func _send_team_request(team: int) -> String:
+	request_team.rpc_id(1, team)
+	return "PENDING"
+
+@rpc("any_peer", "call_remote", "reliable") func request_team(team: int) -> void:
+	if not multiplayer.is_server():
+		return
+	var sender: int = multiplayer.get_remote_sender_id()
+	var result: String = _change_team(sender, team)
+	receive_lobby_answer.rpc_id(sender, result)
+
+func _change_team(peer_id: int, team: int) -> String:
+	if phase != SessionPhase.LOBBY:
+		return "LOBBY_LOCKED"
+	if String(config.get("game_id", "")) != "truco" or team not in [-1, 0, 1]:
+		return "INVALID_TEAM"
+	if not players.has(peer_id):
+		return "UNREGISTERED_PEER"
+	if team in [0, 1]:
+		var capacity: int = 1 if String(config.get("truco_mode", "2v2")) == "1v1" else 2
+		var members: int = 0
+		for player: Dictionary in players.values():
+			if int(player.get("peer_id", -1)) != peer_id and int(player.get("team", -1)) == team:
+				members += 1
+		if members >= capacity:
+			return "TEAM_FULL"
+	players[peer_id]["team"] = team
+	players[peer_id]["ready"] = false
+	_sync_lobby()
+	return "OK"
+
+func request_ready(ready: bool) -> String:
+	return _change_ready(1, ready) if multiplayer.is_server() else _send_ready_request(ready)
+
+func _send_ready_request(ready: bool) -> String:
+	request_ready_state.rpc_id(1, ready)
+	return "PENDING"
+
+@rpc("any_peer", "call_remote", "reliable") func request_ready_state(ready: bool) -> void:
+	if not multiplayer.is_server():
+		return
+	var sender: int = multiplayer.get_remote_sender_id()
+	var result: String = _change_ready(sender, ready)
+	receive_lobby_answer.rpc_id(sender, result)
+
+func _change_ready(peer_id: int, ready: bool) -> String:
+	if phase != SessionPhase.LOBBY:
+		return "LOBBY_LOCKED"
+	if not players.has(peer_id):
+		return "UNREGISTERED_PEER"
+	if ready and String(config.get("game_id", "")) == "truco" and int(players[peer_id].get("team", -1)) == -1:
+		return "TEAM_REQUIRED"
+	players[peer_id]["ready"] = ready
+	_sync_lobby()
+	return "OK"
+
+@rpc("authority", "call_remote", "reliable") func receive_lobby_answer(result: String) -> void:
+	connection_status.emit(result)
+
+func _ordered_match_players() -> Array:
+	var ordered: Array[Dictionary] = _normalize_player_list(players.values())
+	ordered.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a.seat) < int(b.seat))
+	if String(config.get("game_id", "")) != "truco":
+		return ordered.map(func(player: Dictionary) -> int: return int(player.peer_id))
+	var team_a: Array[Dictionary] = []
+	var team_b: Array[Dictionary] = []
+	for player: Dictionary in ordered:
+		(team_a if int(player.team) == 0 else team_b).append(player)
+	var result: Array = []
+	for index: int in mini(team_a.size(), team_b.size()):
+		result.append(int(team_a[index].peer_id))
+		result.append(int(team_b[index].peer_id))
+	return result
+
 func request_start()->String:
 	if not multiplayer.is_server():return "NOT_HOST"
-	if phase!=SessionPhase.LOBBY or not GameConstants.player_count_valid(config.game_id,players.size()):return "INVALID_PLAYER_COUNT"
+	if phase != SessionPhase.LOBBY:
+		return "LOBBY_LOCKED"
+	var list: Array[Dictionary] = _normalize_player_list(players.values())
+	var validation: String = GameConstants.lobby_configuration_valid(String(config.get("game_id", "")), config, list)
+	if validation != "OK":
+		return validation
 	phase=SessionPhase.LOADING;match_id+=1;_ready_peers.clear();var screen:String=config.game_id;load_match.rpc(session_id,match_id,screen);_load_local_match(screen);_scene_timer=_timer(GameConstants.SCENE_READY_TIMEOUT_SECONDS,_scene_ready_timeout);return "OK"
 @rpc("authority","call_remote","reliable") func load_match(id:String,new_match_id:int,screen:String)->void:
 	if id!=session_id or screen not in GameConstants.GAMES:return
@@ -140,8 +231,7 @@ func _scene_ready_timeout()->void:phase=SessionPhase.LOBBY;notify_interruption.r
 func _begin_match()->void:
 	_controller=BaseMatchController.new()
 	add_child(_controller)
-	var ids:Array=players.keys()
-	ids.sort()
+	var ids: Array = _ordered_match_players()
 	var game_id: String = String(config.get("game_id", ""))
 	var engine:RefCounted
 	match game_id:
@@ -157,7 +247,15 @@ func _begin_match()->void:
 			_controller = null
 			phase=SessionPhase.LOBBY
 			return
-	_controller.snapshots_ready.connect(_broadcast_snapshots);_controller.match_finished.connect(_match_finished);_controller.initialize(engine,ids,randi(),config);phase=SessionPhase.MATCH_ACTIVE
+	if game_id == "truco":
+		var team_by_peer: Dictionary = {}
+		for player: Dictionary in players.values():
+			team_by_peer[int(player.peer_id)] = int(player.team)
+		config["team_by_peer"] = team_by_peer
+	_controller.snapshots_ready.connect(_broadcast_snapshots)
+	_controller.match_finished.connect(_match_finished)
+	_controller.initialize(engine, ids, randi(), config)
+	phase = SessionPhase.MATCH_ACTIVE
 func submit_action(action_type: String, payload: Dictionary = {}) -> int:
 	var action_id: int = _next_action_id
 	_next_action_id += 1
