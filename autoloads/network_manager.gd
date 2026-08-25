@@ -56,14 +56,37 @@ func _unique_name(base:String)->String:
 func _reject_and_disconnect(id:int,reason:String)->void:receive_rejection.rpc_id(id,reason);await get_tree().create_timer(0.2).timeout;_peer.disconnect_peer(id)
 @rpc("authority","call_remote","reliable") func receive_rejection(reason:String)->void:connection_status.emit(reason);clean_session()
 @rpc("authority","call_remote","reliable") func receive_session(id:String,settings:Dictionary,list:Array)->void:
+	var normalized_players:Array[Dictionary]=_normalize_player_list(list)
+	if normalized_players.is_empty():
+		connection_status.emit("Lista de jogadores inválida.");clean_session();return
 	session_id=id;config=settings.duplicate(true);players.clear()
-	for player in list:players[player.peer_id]=player
-	phase=SessionPhase.LOBBY;SessionState.session_id=id;SessionState.game_id=config.game_id;SessionState.players=list.duplicate(true);SessionState.local_peer_id=multiplayer.get_unique_id();SceneRouter.request_transition("lobby")
+	for player:Dictionary in normalized_players:players[int(player.get("peer_id",-1))]=player
+	phase=SessionPhase.LOBBY;SessionState.session_id=id;SessionState.game_id=config.game_id;SessionState.players.assign(normalized_players);SessionState.local_peer_id=multiplayer.get_unique_id();SceneRouter.request_transition("lobby")
 func _sync_lobby()->void:
-	var list:Array=players.values();lobby_state.rpc(session_id,config,list);lobby_updated.emit(list)
+	var normalized_players:Array[Dictionary]=_normalize_player_list(players.values())
+	if normalized_players.is_empty():
+		connection_status.emit("Lista de jogadores inválida.");clean_session();return
+	SessionState.players.assign(normalized_players);lobby_state.rpc(session_id,config,normalized_players);lobby_updated.emit(normalized_players)
 @rpc("authority","call_remote","reliable") func lobby_state(id:String,settings:Dictionary,list:Array)->void:
 	if not session_id.is_empty() and id!=session_id:return
-	session_id=id;config=settings.duplicate(true);SessionState.players=list.duplicate(true);lobby_updated.emit(list)
+	var normalized_players:Array[Dictionary]=_normalize_player_list(list)
+	if normalized_players.is_empty():
+		connection_status.emit("Lista de jogadores inválida.");clean_session();return
+	session_id=id;config=settings.duplicate(true);players.clear()
+	for player:Dictionary in normalized_players:players[int(player.get("peer_id",-1))]=player
+	SessionState.players.assign(normalized_players);lobby_updated.emit(normalized_players)
+func _normalize_player_list(raw_players:Array)->Array[Dictionary]:
+	var normalized:Array[Dictionary]=[]
+	for raw_player:Variant in raw_players:
+		if not raw_player is Dictionary:return []
+		var player:Dictionary=(raw_player as Dictionary).duplicate(true)
+		if typeof(player.get("peer_id",null))!=TYPE_INT:return []
+		if typeof(player.get("display_name",null))!=TYPE_STRING:return []
+		if typeof(player.get("seat",null))!=TYPE_INT:return []
+		if typeof(player.get("ready",null))!=TYPE_BOOL:return []
+		if typeof(player.get("connected",null))!=TYPE_BOOL:return []
+		normalized.append(player)
+	return normalized
 func request_start()->String:
 	if not multiplayer.is_server():return "NOT_HOST"
 	if phase!=SessionPhase.LOBBY or not GameConstants.player_count_valid(config.game_id,players.size()):return "INVALID_PLAYER_COUNT"
