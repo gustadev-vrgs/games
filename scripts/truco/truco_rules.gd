@@ -99,7 +99,7 @@ func build_public_snapshot(state:Dictionary)->Dictionary:
 	return {"game_id":"truco","phase":state.phase,"current_player":state.players[state.current_index],"turn_card":state.turn_card,"manilha":state.manilha,"played":state.played.duplicate(true),"scores":state.scores.duplicate(),"accepted_value":state.accepted_value,"target_value":state.target_value,"responding_team":state.responding_team,"card_counts":counts,"winner":state.winner,"state_version":state.state_version}
 func build_private_snapshot(state:Dictionary,peer_id:int)->Dictionary:return {"peer_id":peer_id,"hand":state.hands.get(peer_id,[]).duplicate(true),"team":state.players.find(peer_id)%2,"state_version":state.state_version}
 func validate_invariants(state:Dictionary)->String:
-	var cards:Array=[];cards.append_array(state.draw_pile);cards.append(state.turn_card)
+	var cards:Array[Dictionary]=[];cards.append_array(state.draw_pile);cards.append(state.turn_card)
 	for id in state.players:cards.append_array(state.hands[id])
 	for play in state.played:cards.append(play.card)
 	cards.append_array(state.completed_cards)
