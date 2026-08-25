@@ -61,3 +61,11 @@ A saída da sala agora exige confirmação em lobby, mesas e resultados. Cliente
 No Uno, tanto o botão contextual quanto o monte central clicável compram uma carta. O monte destaca a ausência de jogada válida, recicla o descarte preservando a carta superior e mostra a escolha de cor do curinga para todos. O snapshot público inclui `last_play`, cor ativa, capacidade do monte e apenas metadados públicos da última compra.
 
 No Truco, os pedidos seguem 1 → 3 → 6 → 9 → 12, com equipe respondente, solicitante e próximo valor explícitos no snapshot. A fase autoritativa `TRICK_REVEAL` mantém as cartas por 2,5 segundos; somente um timer do host, protegido pela versão do estado, avança a partida. O histórico público registra ordem, jogador, equipe, carta e resultado de cada vaza sem copiar mãos privadas.
+
+## Lobby autoritativo, equipes e limites (protocolo v2)
+
+O protocolo v2 sincroniza cada participante como `peer_id`, `display_name`, `seat`, `team`, `ready` e `connected`; clientes v1 são recusados. Uno aceita de 2 até o limite configurável (padrão 8), Caxeta permanece em 2–5, Truco 1v1 exige 2 e Truco 2v2 exige exatamente 4.
+
+No Truco, cada pedido de equipe é validado sequencialmente pelo host. Os integrantes são ordenados por `seat` dentro das equipes e a partida recebe a ordem A1, B1, A2, B2, além de `team_by_peer` e `team_members`. Trocar/sair da equipe cancela o estado pronto. Todos, inclusive o host, precisam confirmar pronto. Os snapshots públicos expõem apenas equipes, ordem e contagens; cada mão continua em RPC privado para seu peer.
+
+A lista de adversários usa fluxo responsivo, limita a cinco mini-versos por adversário e mantém o contador, permitindo identificar os sete adversários do Uno sem criar uma carta visual para cada carta oculta.

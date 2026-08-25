@@ -14,6 +14,8 @@ func initialize(engine: RefCounted, players: Array, seed: int, config: Dictionar
 	rng.seed = seed
 	if engine is CaxetaRules:
 		state = rules.create_initial_state(players, rng, int(config.get("lives", 7)))
+	elif engine is TrucoRules:
+		state = rules.create_initial_state(players, rng, config)
 	else:
 		state = rules.create_initial_state(players, rng)
 	_publish()

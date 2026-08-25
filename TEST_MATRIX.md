@@ -22,3 +22,13 @@ Uma execução só deve ser marcada como aprovada com código de saída 0 e sem 
 | Uno | Compra, reciclagem sem reciclar topo, conservação, curinga inválido/válido e privacidade de `last_play` | Clique no monte, animação e cor idêntica em duas instâncias |
 | Truco | 1/3/6/9/12, limite, equipes, correr, `TRICK_REVEAL`, transição única e histórico ordenado | Conferir modal, brilho e espera de 2,5 s em duas instâncias |
 | Rede/UI | Envio diferido, timeout, duplo clique, resposta obsoleta e cenas no runner | Latência/perda real em ENet e responsividade visual |
+
+## Protocolo v2 / configurações ampliadas
+| Área | Cobertura automatizada | Estado |
+|---|---|---|
+| Lobby Uno 2/8/9 e limite configurado | `TestLobbyConfig` | Coberto |
+| Truco 1v1/2v2, equipes completas/pronto | `TestLobbyConfig` | Coberto |
+| Truco A-B-A-B e equipe explícita | `TestTruco` | Coberto |
+| Uno 8: 56/108, snapshots, wrap de turnos | `TestUno` | Coberto |
+| LAN host + 7 clientes em máquinas físicas | Manual | Pendente (infraestrutura externa) |
+| Layout 1280–1920 | containers responsivos + scene smoke | Automatizado estrutural; inspeção física pendente |
