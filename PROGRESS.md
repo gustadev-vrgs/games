@@ -1,5 +1,16 @@
 # Progresso
 
+## Correção prioritária — mesa responsiva e Truco espanhol
+
+- Protocolo 3 e baralho espanhol autoritativo de 40 cartas, sem ranks franceses no Truco.
+- Cartas encobertas validadas pelo host a partir do segundo turno e sanitizadas nos snapshots públicos.
+- Mesa dividida em cabeçalho fixo, conteúdo flexível, mão horizontal e ações permanentes; vira/monte à esquerda e histórico visual à direita.
+- Declaração de UNO antes da penúltima carta, confirmação de penalidade e saída permanente para o menu.
+- Validação LAN manual de duas instâncias permanece pendente no ambiente sem executável Godot.
+- Catálogo completo com 40 frentes SVG espanholas distintas, um verso SVG, carregador `Texture2D` e galeria de desenvolvimento.
+- Formatação centralizada cobre Truco, Uno, Caxeta e singular/plural de cartas e jogadores.
+- Saída centralizada e idempotente conclui cliente e host no menu, com janela limitada para RPC confiável, fallback offline e repetição segura da transição de cena.
+
 - **Última fase implementada:** Fase 17 — Polimento, exportação e documentação.
 - **Fase atual:** **FLUXO DE CARTAS E REENTRÂNCIA CORRIGIDOS — VALIDAÇÃO GODOT/LAN PENDENTE**.
 - **Arquivos implementados:** configuração Godot/exportação; três Autoloads; dados, protocolo e construtor de baralhos; regras/controladores/UI de Uno, Caxeta e Truco; 13 cenas e 40 scripts GDScript; testes puros, de cena e rede; documentação/checkpoints.

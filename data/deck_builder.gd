@@ -1,12 +1,13 @@
 class_name DeckBuilder
 extends RefCounted
 const SUITS: PackedStringArray = ["diamonds","spades","hearts","clubs"]
-const TRUCO_RANKS: PackedStringArray = ["4","5","6","7","Q","J","K","A","2","3"]
+const TRUCO_SUITS: PackedStringArray = ["ouros", "espadas", "copas", "paus"]
+const TRUCO_RANKS: PackedStringArray = ["4", "5", "6", "7", "10", "11", "12", "1", "2", "3"]
 const CAXETA_RANKS: PackedStringArray = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"]
 const UNO_COLORS: PackedStringArray = ["red","yellow","green","blue"]
 static func build_truco() -> Array[Dictionary]:
 	var deck: Array[Dictionary] = []; var uid: int = 1
-	for suit in SUITS:
+	for suit in TRUCO_SUITS:
 		for rank in TRUCO_RANKS: deck.append(CardData.make(uid,"truco",rank,suit)); uid += 1
 	return deck
 static func build_caxeta() -> Array[Dictionary]:

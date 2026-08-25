@@ -21,7 +21,7 @@ func _render_specific_table() -> void:
 		_add_table_card(turn_value as Dictionary, "Vira")
 	var wild_value: Variant = public_snapshot.get("wild", {})
 	var wild: Dictionary = wild_value as Dictionary if wild_value is Dictionary else {}
-	%GameDetail.text = "Curinga: %s de %s   ·   Vidas: %s" % [String(wild.get("rank", "—")), String(wild.get("suit", "—")), _lives_text()]
+	%GameDetail.text = "Curinga: %s   ·   Vidas: %s" % [CardFormatter.card_name(wild), _lives_text()]
 
 func _discard() -> void:
 	submit_selected("DISCARD", {"declare_knock": %KnockNormal.button_pressed})

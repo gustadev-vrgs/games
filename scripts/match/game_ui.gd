@@ -12,6 +12,7 @@ const ERROR_MESSAGES: Dictionary = {
 	"INVALID_COLOR": "Escolha uma cor válida.",
 	"ILLEGAL_WILD_DRAW_FOUR": "O +4 só vale quando você não possui a cor ativa.",
 	"MUST_DRAW_FIRST": "Compre uma carta antes de continuar.",
+	"FACE_DOWN_FIRST_TRICK": "A carta só pode ser encoberta a partir do 2º turno.",
 	"INVALID_KNOCK": "Sua mão ainda não forma combinações válidas.",
 }
 
@@ -34,7 +35,8 @@ func _ready() -> void:
 	_connect_once(NetworkManager.action_answered, _on_action_answered)
 	_connect_once(NetworkManager.session_interrupted, _on_session_interrupted)
 	_connect_once(%Leave.pressed, _leave)
-	%Leave.text = "Encerrar sala" if multiplayer.is_server() else "Sair da sala"
+	%Leave.text = "Sair para o menu"
+	%Leave.custom_minimum_size = Vector2(140.0, 40.0)
 	_create_leave_dialog()
 	_pending_timer = Timer.new()
 	_pending_timer.one_shot = true
@@ -87,7 +89,7 @@ func _on_private_snapshot(snapshot: Dictionary) -> void:
 		visual.card_clicked.connect(_select_card)
 	selected_uid = previous_selection if _selection_can_survive(previous_selection) else -1
 	_refresh_hand_states()
-	%HandCount.text = "%d cartas na sua mão" % cards_by_uid.size()
+	%HandCount.text = "%s na sua mão" % CardFormatter.cards(cards_by_uid.size())
 	_update_actions()
 
 func _render_header() -> void:
@@ -117,11 +119,12 @@ func _render_opponents() -> void:
 			var back: CardVisual = CARD_SCENE.instantiate() as CardVisual
 			back.custom_minimum_size = Vector2(35.0, 50.0)
 			backs.add_child(back)
-			back.configure({}, false)
+			var back_data: Dictionary = {"game_id":String(public_snapshot.get("game_id", ""))}
+			back.configure(back_data, false, CardVisual.DisplayMode.OPPONENT_BACK)
 			back.set_state(false, false, false, false)
 		panel.add_child(backs)
 		var count_label: Label = Label.new()
-		count_label.text = "%d carta(s)" % count
+		count_label.text = CardFormatter.cards(count)
 		count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		panel.add_child(count_label)
 		opponents.add_child(panel)
@@ -266,10 +269,7 @@ func _player_name(peer_id: int) -> String:
 	return "outro jogador"
 
 func _card_name(card: Dictionary) -> String:
-	var action: String = String(card.get("action", ""))
-	if not action.is_empty():
-		return action.replace("_", " ")
-	return "%s %s" % [String(card.get("rank", "")), String(card.get("suit", card.get("color", "")))]
+	return CardFormatter.card_name(card)
 
 func _clear_children(container: Node) -> void:
 	for child: Node in container.get_children():
@@ -281,16 +281,14 @@ func _leave() -> void:
 func _create_leave_dialog() -> void:
 	_leave_dialog = ConfirmationDialog.new()
 	_leave_dialog.title = "Encerrar sala" if multiplayer.is_server() else "Sair da sala"
-	_leave_dialog.dialog_text = "Deseja encerrar a sala? Todos os jogadores serão desconectados." if multiplayer.is_server() else "Deseja sair da sala? A partida atual será interrompida."
+	_leave_dialog.dialog_text = "Deseja encerrar a sala? Todos os jogadores voltarão ao menu principal." if multiplayer.is_server() else "Deseja sair da sala e voltar ao menu principal?"
 	_leave_dialog.ok_button_text = "Encerrar sala" if multiplayer.is_server() else "Sair da sala"
 	_leave_dialog.cancel_button_text = "Cancelar"
 	_leave_dialog.confirmed.connect(func() -> void:
 		if is_instance_valid(_pending_timer):
 			_pending_timer.stop()
 		pending_action = -1
-		if multiplayer.is_server():
-			NetworkManager.close_room()
-		else:
-			NetworkManager.leave_room()
+		selected_uid = -1
+		NetworkManager.leave_session()
 	)
 	add_child(_leave_dialog)

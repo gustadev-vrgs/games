@@ -3,6 +3,8 @@ extends Button
 
 signal card_clicked(card_uid: int)
 
+enum DisplayMode { HAND, TABLE, OPPONENT_BACK, HISTORY_MINI, SPANISH_DECK, FACE_DOWN_PLAY }
+
 const UNO_COLORS: Dictionary = {
 	"red": Color("d83a3a"),
 	"yellow": Color("f2c94c"),
@@ -29,12 +31,14 @@ var playable_hint: bool = false
 var pending: bool = false
 var recently_played: bool = false
 var winning_card: bool = false
+var display_mode: DisplayMode = DisplayMode.HAND
 var _hovered: bool = false
 var _visual_lift: float = 0.0:
 	set(value):
 		_visual_lift = value
 		queue_redraw()
 var _motion_tween: Tween
+var _card_texture: Texture2D
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(88.0, 126.0)
@@ -50,10 +54,19 @@ func _ready() -> void:
 		mouse_exited.connect(_on_mouse_exited)
 	_refresh()
 
-func configure(card: Dictionary, up: bool = true) -> void:
+func configure(card: Dictionary, up: bool = true, mode: DisplayMode = DisplayMode.HAND) -> void:
 	card_data = card.duplicate(true)
 	card_uid = int(card_data.get("uid", -1))
 	face_up = up
+	display_mode = mode
+	if String(card_data.get("game_id", "")) == "truco":
+		_card_texture = TrucoSpanishCardTextures.load_face(String(card_data.get("rank", "")), String(card_data.get("suit", ""))) if face_up else TrucoSpanishCardTextures.load_back()
+	else:
+		_card_texture = null
+	if display_mode == DisplayMode.HISTORY_MINI:
+		custom_minimum_size = Vector2(44.0, 64.0)
+		focus_mode = Control.FOCUS_NONE
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tooltip_text = _tooltip()
 	_refresh()
 
@@ -89,11 +102,18 @@ func _draw() -> void:
 	if playable_hint and face_up and not pending and not selected:
 		border = Color("55d98b")
 	draw_style_box(_box(background, border, 12, 5 if winning_card else (4 if selected else 3)), bounds)
+	if is_instance_valid(_card_texture):
+		draw_texture_rect(_card_texture, bounds.grow(-2.0), false)
+		if pending:
+			draw_style_box(_box(Color(0.02, 0.04, 0.05, 0.58), Color.TRANSPARENT, 12), bounds)
+		return
 	if not face_up:
 		_draw_back(bounds)
 		return
 	if String(card_data.get("game_id", "")) == "uno":
 		_draw_uno(bounds)
+	elif String(card_data.get("game_id", "")) == "truco":
+		_draw_spanish(bounds)
 	else:
 		_draw_standard(bounds)
 	if pending:
@@ -115,7 +135,7 @@ func _draw_uno(bounds: Rect2) -> void:
 	_draw_text(value, bounds.end - Vector2(10.0 + value.length() * 7.0, 9.0), 16, Color.WHITE)
 
 func _draw_standard(bounds: Rect2) -> void:
-	var rank: String = String(card_data.get("rank", "?"))
+	var rank: String = CardFormatter.caxeta_face_rank(String(card_data.get("rank", "?")))
 	var suit: String = _suit_symbol(String(card_data.get("suit", "")))
 	var ink: Color = Color("bd3038") if suit in ["♥", "♦"] else Color("172229")
 	_draw_text(rank, bounds.position + Vector2(9.0, 23.0), 17, ink)
@@ -123,13 +143,33 @@ func _draw_standard(bounds: Rect2) -> void:
 	_draw_centered(suit, 39, ink, bounds)
 	_draw_text(rank, bounds.end - Vector2(11.0 + rank.length() * 7.0, 12.0), 17, ink)
 
+func _draw_spanish(bounds: Rect2) -> void:
+	var rank: String = String(card_data.get("rank", "?"))
+	var suit: String = String(card_data.get("suit", ""))
+	var ink: Color = Color("a82e28") if suit in ["copas", "ouros"] else Color("234b3b")
+	var gold: Color = Color("c99b2e")
+	var short_rank: String = CardFormatter.spanish_rank(rank).left(3) if rank in ["1", "10", "11", "12"] else rank
+	_draw_text(short_rank, bounds.position + Vector2(8.0, 22.0), 14, ink)
+	var center: Vector2 = bounds.get_center()
+	match suit:
+		"ouros":
+			draw_circle(center, 20.0, gold); draw_circle(center, 12.0, Color("f7d56b")); draw_circle(center, 5.0, ink)
+		"copas":
+			draw_polygon(PackedVector2Array([center + Vector2(-18,-18), center + Vector2(18,-18), center + Vector2(10,7), center + Vector2(-10,7)]), PackedColorArray([gold])); draw_line(center + Vector2(0,7), center + Vector2(0,25), ink, 4.0); draw_line(center + Vector2(-12,25), center + Vector2(12,25), ink, 4.0)
+		"espadas":
+			draw_line(center + Vector2(-18,25), center + Vector2(14,-25), Color("80909a"), 7.0); draw_line(center + Vector2(-24,12), center + Vector2(-5,24), gold, 5.0); draw_colored_polygon(PackedVector2Array([center + Vector2(14,-25), center + Vector2(9,-11), center + Vector2(20,-15)]), Color("d9e1e5"))
+		"paus":
+			draw_line(center + Vector2(-13,27), center + Vector2(12,-27), Color("79512f"), 10.0); draw_line(center + Vector2(-7,8), center + Vector2(-21,-2), Color("477a43"), 5.0); draw_line(center + Vector2(5,-8), center + Vector2(20,-17), Color("477a43"), 5.0)
+	if rank in ["10", "11", "12"]:
+		_draw_text(CardFormatter.spanish_rank(rank), bounds.position + Vector2(8.0, bounds.size.y - 9.0), 11, ink)
+
 func _draw_back(bounds: Rect2) -> void:
 	var inner: Rect2 = bounds.grow(-8.0)
 	draw_style_box(_box(Color("173d50"), Color("d8b45b"), 8, 2), inner)
 	for y_value in range(int(inner.position.y) + 7, int(inner.end.y), 12):
 		for x_value in range(int(inner.position.x) + 7, int(inner.end.x), 12):
 			draw_circle(Vector2(x_value, y_value), 2.2, Color(0.85, 0.7, 0.35, 0.72))
-	_draw_centered("HC", 20, Color("f1d783"), bounds)
+	_draw_centered("TRUCO" if display_mode in [DisplayMode.SPANISH_DECK, DisplayMode.FACE_DOWN_PLAY, DisplayMode.HISTORY_MINI] else "HC", 13, Color("f1d783"), bounds)
 
 func _background_color() -> Color:
 	if not face_up:
@@ -157,10 +197,11 @@ func _uno_value() -> String:
 
 func _tooltip() -> String:
 	if not face_up:
-		return "Carta virada para baixo"
+		return "Carta encoberta" if display_mode in [DisplayMode.FACE_DOWN_PLAY, DisplayMode.HISTORY_MINI] else "Carta virada para baixo"
 	if String(card_data.get("game_id", "")) == "uno":
-		return "Carta Uno: %s" % _uno_value()
-	return "%s de %s" % [String(card_data.get("rank", "?")), String(card_data.get("suit", ""))]
+		var action: String = String(card_data.get("action", ""))
+		return "Carta de %s" % CardFormatter.uno_action(action) if not action.is_empty() else "Carta Uno %s" % String(card_data.get("rank", ""))
+	return CardFormatter.card_name(card_data)
 
 func _suit_symbol(suit: String) -> String:
 	return String(SUITS.get(suit.to_lower(), suit))
@@ -183,7 +224,7 @@ func _draw_centered(value: String, font_size: int, color: Color, bounds: Rect2) 
 
 func _refresh() -> void:
 	disabled = not interactable or pending
-	modulate = Color(0.62, 0.66, 0.68) if disabled else Color.WHITE
+	modulate = Color(0.62, 0.66, 0.68) if disabled and display_mode == DisplayMode.HAND else Color.WHITE
 	queue_redraw()
 
 func _animate_transform() -> void:

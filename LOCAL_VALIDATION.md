@@ -2,12 +2,15 @@
 
 > **Status: CORREÇÃO IMPLEMENTADA — VALIDAÇÃO LOCAL PENDENTE.** O ambiente da correção não disponibilizou `godot` nem `godot4`; portanto, os comandos abaixo não foram declarados como aprovados e devem ser executados em uma instalação local da versão exata.
 
+Na rodada LAN com duas instâncias, valide o Truco espanhol (vira e monte à esquerda, encoberta bloqueada no primeiro turno, verso privado no segundo/terceiro, histórico lateral e progressão Truco/6/9/12), a declaração de UNO com duas cartas e vitória ao zerar a mão, e a saída de cliente/host para o menu. Repita em 1280×720, 1366×768, 1600×900 e 1920×1080, confirmando cabeçalho, mão e barra de ações dentro do viewport.
+
 1. Instale **Godot 4.5.1 stable** e os templates de exportação da mesma versão.
 2. Na raiz do repositório, confirme: `godot --version` (deve reportar `4.5.1.stable`).
 3. Importe recursos: `godot --headless --path . --import`.
 4. Rode regras e baralhos: `godot --headless --path . --script res://tests/test_runner.gd`.
 5. Rode cenas: `godot --headless --path . --script res://tests/scene_smoke_runner.gd`.
-6. Inicie o smoke servidor em um terminal: `godot --headless --path . --script res://tests/network_smoke_server.gd`.
+6. Rode o fluxo real de saída pelas mesas: `godot --headless --path . --script res://tests/leave_flow_runner.gd`.
+7. Inicie o smoke servidor em um terminal: `godot --headless --path . --script res://tests/network_smoke_server.gd`.
 7. Em até 12 segundos, inicie o cliente em outro terminal: `godot --headless --path . --script res://tests/network_smoke_client.gd`.
 8. Abra `project.godot` no editor, execute o projeto e percorra Menu → Criar/Entrar → Lobby; clique repetidamente para confirmar que não há transição dupla.
 9. Teste em 1280×720, 1600×900 e 1920×1080, incluindo redimensionamento, teclado e textos longos.

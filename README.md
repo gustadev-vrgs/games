@@ -16,7 +16,7 @@ Use o endereço mostrado no lobby, normalmente `192.168.x.x` ou `10.x.x.x`. `127
 
 - **Uno:** 7 cartas, descarte inicial numérico, compra voluntária, apenas a carta comprada pode ser jogada, passar, +2/skip/reverse, wild/+4 atômicos, +4 apenas sem carta da cor ativa, declaração Uno e penalidade automática de duas; sem stacking/desafio.
 - **Caxeta:** 9 cartas, compra e descarte, vira define o próximo rank/naipe como curinga, trincas e sequências sem sobreposição resolvidas por backtracking, batida de 9 perde 1 vida e batida de 10 com sequência 4+ perde 2; 7 ou 10 vidas.
-- **Truco Paulista:** ordem 4–3, vira/manilha com Paus mais forte, três vazas, empates fechados, pedidos 3/6/9/12, aceitar/correr/aumentar e equipes opostas por assento; vence em 12.
+- **Truco Paulista:** baralho espanhol de 40 cartas (4, 5, 6, 7, Valete, Cavalo, Rei, Ás, 2 e 3), vira/manilha com Paus mais forte, três turnos, cartas encobertas a partir do segundo, pedidos 3/6/9/12 e equipes opostas; vence em 12.
 
 ## Testes
 
@@ -42,13 +42,13 @@ A interface usa apenas controles, texto e símbolos do sistema; não há asset e
 
 ## Interface e controles
 
-A apresentação usa mesa de feltro verde-petróleo, painéis translúcidos, detalhes dourados e cartas desenhadas proceduralmente. Cartas tradicionais têm frente marfim, rank e naipe; cartas Uno usam cores vivas e símbolos próprios; o verso geométrico “HC” nunca revela dados. A mesa se reorganiza por `Container`, a mão possui rolagem horizontal, adversários mostram assento e até cinco miniaturas de verso com a contagem real.
+A apresentação usa mesa de feltro verde-petróleo, painéis translúcidos e detalhes dourados. O Truco carrega 40 SVGs espanhóis originais e um verso ornamental como `Texture2D`; a Caxeta mantém seus IDs tradicionais com nomes e faces localizados; o Uno usa cores vivas e textos em PT-BR. A mesa se reorganiza por `Container`, a mão possui rolagem horizontal e adversários mostram miniaturas de verso com a contagem real.
 
 Todas as mesas usam deliberadamente confirmação em dois passos: **primeiro clique na carta para selecioná-la; depois confirme no botão principal** (**Jogar carta** ou **Descartar carta**). A carta escolhida sobe, ganha contorno dourado e seu nome aparece no HUD. Clique nela outra vez ou pressione `Esc` para cancelar; `Enter` confirma somente quando o botão principal estiver habilitado. O contorno verde discreto é apenas uma dica de jogada legal. Durante a confirmação, novos cliques são ignorados e um timeout de oito segundos devolve os controles sem reenviar a ação.
 
 - **Uno:** no seu turno, selecione uma carta compatível com a cor, número ou símbolo e confirme em **Jogar carta**. Uma carta incompatível pode ser inspecionada, mas não confirmada. **Comprar carta** aparece na jogada normal e **Passar** após uma compra jogável. Ao confirmar um curinga, escolha vermelho, amarelo, verde ou azul na janela central; cancelar não envia nada. **Declarar Uno** só é oferecido quando a jogada deixará uma carta.
 - **Caxeta:** siga a instrução da rodada: (1) **Comprar do monte** ou **Comprar descarte**, (2) selecionar uma carta e (3) confirmar em **Descartar carta**. Não é possível descartar antes da compra. **Bater ao descartar** viaja na mesma ação atômica e **Bater com 10** valida a mão completa.
-- **Truco:** durante a vaza, selecione e confirme em **Jogar carta**. **Pedir Truco** respeita turno, valor e equipe do último aumento. Enquanto houver pedido, jogar fica bloqueado e somente a equipe respondente pode usar **Aceitar**, **Correr** ou **Aumentar**. Vira, manilha, vaza, valor da mão e placar ficam no centro.
+- **Truco:** selecione uma carta e use **Jogar aberta** ou, do segundo turno em diante, **Esconder carta** (também ao clicar no monte). **Chamar Truco** oferece aceitar, correr e o próximo aumento até doze. A vira e o monte ficam à esquerda, as jogadas no centro e o **Histórico dos turnos** à direita.
 
 Host e cliente seguem a mesma confirmação assíncrona. Uma rejeição mostra uma explicação amigável e reabilita a mesa; perda de conexão também cancela qualquer espera. Para validar em LAN, use duas instâncias/computadores conforme `LOCAL_VALIDATION.md`.
 
@@ -58,13 +58,15 @@ O menu inclui **Como jogar**, com abas para os três jogos e LAN. Nenhuma tela f
 
 A saída da sala agora exige confirmação em lobby, mesas e resultados. Clientes notificam o host antes da desconexão; uma saída durante a partida cancela o controlador e devolve os jogadores restantes ao lobby, enquanto o host pode encerrar a sessão inteira. O processamento é idempotente para não repetir a saída quando o evento de transporte chegar depois da intenção confiável.
 
+O fluxo **Sair para o menu** é centralizado em `NetworkManager.leave_session()`: bloqueia ações, cancela timers/controlador, despacha a notificação confiável por até 250 ms, encerra o peer, limpa snapshots e sessão e tenta a transição ao menu novamente caso outra troca de cena ainda esteja terminando. O host encerra a sala e os clientes recebem a mesma saída; uma desconexão intencional não exibe mensagem falsa de queda.
+
 No Uno, tanto o botão contextual quanto o monte central clicável compram uma carta. O monte destaca a ausência de jogada válida, recicla o descarte preservando a carta superior e mostra a escolha de cor do curinga para todos. O snapshot público inclui `last_play`, cor ativa, capacidade do monte e apenas metadados públicos da última compra.
 
-No Truco, os pedidos seguem 1 → 3 → 6 → 9 → 12, com equipe respondente, solicitante e próximo valor explícitos no snapshot. A fase autoritativa `TRICK_REVEAL` mantém as cartas por 2,5 segundos; somente um timer do host, protegido pela versão do estado, avança a partida. O histórico público registra ordem, jogador, equipe, carta e resultado de cada vaza sem copiar mãos privadas.
+No Truco, os pedidos seguem 1 → 3 → 6 → 9 → 12, com equipe respondente, solicitante e próximo valor explícitos no snapshot. A fase autoritativa `TRICK_REVEAL` mantém as cartas por 2,5 segundos; somente um timer do host, protegido pela versão do estado, avança a partida. O histórico público registra ordem, jogador, equipe, carta e resultado de cada turno sem copiar mãos privadas.
 
-## Lobby autoritativo, equipes e limites (protocolo v2)
+## Lobby autoritativo, equipes e limites (protocolo v3)
 
-O protocolo v2 sincroniza cada participante como `peer_id`, `display_name`, `seat`, `team`, `ready` e `connected`; clientes v1 são recusados. Uno aceita de 2 até o limite configurável (padrão 8), Caxeta permanece em 2–5, Truco 1v1 exige 2 e Truco 2v2 exige exatamente 4.
+O protocolo v3 sincroniza cada participante como `peer_id`, `display_name`, `seat`, `team`, `ready` e `connected`; clientes v1 são recusados. Uno aceita de 2 até o limite configurável (padrão 8), Caxeta permanece em 2–5, Truco 1v1 exige 2 e Truco 2v2 exige exatamente 4.
 
 No Truco, cada pedido de equipe é validado sequencialmente pelo host. Os integrantes são ordenados por `seat` dentro das equipes e a partida recebe a ordem A1, B1, A2, B2, além de `team_by_peer` e `team_members`. Trocar/sair da equipe cancela o estado pronto. Todos, inclusive o host, precisam confirmar pronto. Os snapshots públicos expõem apenas equipes, ordem e contagens; cada mão continua em RPC privado para seu peer.
 

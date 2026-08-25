@@ -5,6 +5,8 @@ signal action_answered(answer:Dictionary)
 signal public_snapshot_received(snapshot:Dictionary)
 signal private_snapshot_received(snapshot:Dictionary)
 signal session_interrupted(reason:String)
+signal session_leave_started()
+signal session_leave_completed()
 enum SessionPhase { OFFLINE, LOBBY, LOCKED, LOADING, MATCH_ACTIVE, MATCH_PAUSED, MATCH_FINISHED }
 var phase:SessionPhase=SessionPhase.OFFLINE;var players:Dictionary={};var config:Dictionary={};var session_id:String="";var match_id:int=0;var state_version:int=0
 var _peer:ENetMultiplayerPeer;var _connection_timer:Timer;var _scene_timer:Timer;var _ready_peers:Dictionary={};var _action_cache:Dictionary={};var _controller:BaseMatchController;var _next_action_id:int=1
@@ -12,6 +14,8 @@ var _reveal_timer: Timer
 var _reveal_token: int = 0
 var _processed_departures: Dictionary = {}
 var _shutting_down: bool = false
+var _is_leaving_session: bool = false
+var _intentional_disconnect: bool = false
 func _ready()->void:
 	multiplayer.peer_connected.connect(_on_peer_connected);multiplayer.peer_disconnected.connect(_on_peer_disconnected);multiplayer.connected_to_server.connect(_on_connected);multiplayer.connection_failed.connect(_on_connection_failed);multiplayer.server_disconnected.connect(_on_server_disconnected)
 func create_server(nickname:String,game_id:String,settings:Dictionary,port:int)->String:
@@ -41,7 +45,9 @@ func _on_connected()->void:
 	_cancel_timer(_connection_timer);connection_status.emit("Conectado; registrando jogador...");register_player.rpc_id(1,GameConstants.PROTOCOL_VERSION,SessionState.nickname)
 func _on_connection_failed()->void:clean_session();connection_status.emit("Não foi possível conectar.")
 func _on_connection_timeout()->void:clean_session();connection_status.emit("Tempo de conexão esgotado. Verifique IP, porta, rede e firewall.")
-func _on_server_disconnected()->void:clean_session();session_interrupted.emit("O host encerrou a sala.")
+func _on_server_disconnected()->void:
+	if _intentional_disconnect or _is_leaving_session: return
+	clean_session();session_interrupted.emit("O host encerrou a sala.");_transition_to_menu()
 func _on_peer_connected(_id:int)->void:pass
 func _on_peer_disconnected(id:int)->void:
 	if not multiplayer.is_server():return
@@ -257,6 +263,8 @@ func _begin_match()->void:
 	_controller.initialize(engine, ids, randi(), config)
 	phase = SessionPhase.MATCH_ACTIVE
 func submit_action(action_type: String, payload: Dictionary = {}) -> int:
+	if _is_leaving_session:
+		return -1
 	var action_id: int = _next_action_id
 	_next_action_id += 1
 	var envelope: Dictionary = NetworkProtocol.envelope(session_id, match_id, action_id, state_version, action_type, payload)
@@ -336,30 +344,51 @@ func return_to_lobby()->void:
 	session_interrupted.emit(reason)
 	SceneRouter.request_transition("lobby")
 func abort_match()->void:if multiplayer.is_server():return_to_lobby()
-func leave_room() -> void:
-	if _shutting_down:
-		return
-	_shutting_down = true
-	if not multiplayer.is_server() and phase != SessionPhase.OFFLINE:
-		notify_voluntary_leave.rpc_id(1)
-	call_deferred("_finish_local_departure")
+func leave_room() -> void: leave_session()
+func close_room() -> void: leave_session()
 
-func close_room() -> void:
-	if _shutting_down:
-		return
+func leave_session() -> void:
+	if _is_leaving_session: return
+	_is_leaving_session = true
 	_shutting_down = true
-	if multiplayer.is_server():
-		host_closed_room.rpc()
-	call_deferred("_finish_local_departure")
+	_intentional_disconnect = true
+	session_leave_started.emit()
+	_cancel_match_resources()
+	_cancel_timer(_connection_timer)
+	_cancel_timer(_scene_timer)
+	var was_host: bool = multiplayer.is_server() and phase != SessionPhase.OFFLINE
+	var connected: bool = multiplayer.multiplayer_peer != null and not multiplayer.multiplayer_peer is OfflineMultiplayerPeer
+	if connected:
+		if was_host:
+			host_closed_room.rpc()
+		else:
+			notify_voluntary_leave.rpc_id(1)
+		# Give reliable RPCs a bounded opportunity to reach ENet. No ACK can trap UI.
+		await get_tree().create_timer(0.25).timeout
+	_finish_session_leave()
 
-func _finish_local_departure() -> void:
-	clean_session()
-	SceneRouter.request_transition("menu")
+func _finish_session_leave() -> void:
+	if not _is_leaving_session: return
+	clean_session(true)
+	await _transition_to_menu()
+	_is_leaving_session = false
+	_shutting_down = false
+	_intentional_disconnect = false
+	session_leave_completed.emit()
 
 @rpc("authority", "call_remote", "reliable") func host_closed_room() -> void:
-	clean_session()
+	if _is_leaving_session: return
+	_is_leaving_session = true
+	_intentional_disconnect = true
 	session_interrupted.emit("O host encerrou a sala.")
-	SceneRouter.request_transition("menu")
+	_finish_session_leave()
+
+func _transition_to_menu() -> void:
+	for attempt: int in 10:
+		if await SceneRouter.request_transition("menu"):
+			return
+		await get_tree().process_frame
+	push_error("Não foi possível voltar ao menu principal após sair da sessão.")
 
 func _cancel_match_resources() -> void:
 	_reveal_token += 1
@@ -369,11 +398,14 @@ func _cancel_match_resources() -> void:
 	_controller = null
 	_ready_peers.clear()
 	_action_cache.clear()
-func clean_session()->void:
+func clean_session(preserve_leave_guard: bool = false)->void:
 	_cancel_timer(_connection_timer);_cancel_timer(_scene_timer);_cancel_match_resources()
 	multiplayer.multiplayer_peer=OfflineMultiplayerPeer.new();_peer=null;players.clear();config.clear();_ready_peers.clear();_action_cache.clear();session_id="";match_id=0;state_version=0;phase=SessionPhase.OFFLINE;SessionState.reset_all()
 	_processed_departures.clear()
-	_shutting_down = false
+	if not preserve_leave_guard:
+		_shutting_down = false
+		_is_leaving_session = false
+		_intentional_disconnect = false
 func _cancel_timer(timer:Timer)->void:
 	if is_instance_valid(timer):timer.stop();timer.queue_free()
 func _reseat()->void:
