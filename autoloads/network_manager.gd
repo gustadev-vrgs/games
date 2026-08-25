@@ -6,26 +6,26 @@ signal public_snapshot_received(snapshot:Dictionary)
 signal private_snapshot_received(snapshot:Dictionary)
 signal session_interrupted(reason:String)
 enum SessionPhase { OFFLINE, LOBBY, LOCKED, LOADING, MATCH_ACTIVE, MATCH_PAUSED, MATCH_FINISHED }
-var phase:SessionPhase=SessionPhase.OFFLINE;var players:Dictionary={};var config:Dictionary={};var session_id:="";var match_id:=0;var state_version:=0
-var _peer:ENetMultiplayerPeer;var _connection_timer:Timer;var _scene_timer:Timer;var _ready_peers:Dictionary={};var _action_cache:Dictionary={};var _controller:BaseMatchController;var _next_action_id:=1
+var phase:SessionPhase=SessionPhase.OFFLINE;var players:Dictionary={};var config:Dictionary={};var session_id:String="";var match_id:int=0;var state_version:int=0
+var _peer:ENetMultiplayerPeer;var _connection_timer:Timer;var _scene_timer:Timer;var _ready_peers:Dictionary={};var _action_cache:Dictionary={};var _controller:BaseMatchController;var _next_action_id:int=1
 func _ready()->void:
 	multiplayer.peer_connected.connect(_on_peer_connected);multiplayer.peer_disconnected.connect(_on_peer_disconnected);multiplayer.connected_to_server.connect(_on_connected);multiplayer.connection_failed.connect(_on_connection_failed);multiplayer.server_disconnected.connect(_on_server_disconnected)
 func create_server(nickname:String,game_id:String,settings:Dictionary,port:int)->String:
 	clean_session()
-	var name:=GameConstants.sanitize_nickname(nickname)
+	var name:String=GameConstants.sanitize_nickname(nickname)
 	if name.is_empty() or game_id not in GameConstants.GAMES or not GameConstants.valid_port(port):return "INVALID_CONFIG"
-	_peer=ENetMultiplayerPeer.new();var error:=_peer.create_server(port,GameConstants.MAX_TRANSPORT_CLIENTS)
+	_peer=ENetMultiplayerPeer.new();var error:Error=_peer.create_server(port,GameConstants.MAX_TRANSPORT_CLIENTS)
 	if error!=OK:_peer=null;return "SERVER_CREATE_FAILED"
 	multiplayer.multiplayer_peer=_peer;session_id="%s-%s"%[Time.get_unix_time_from_system(),randi()];phase=SessionPhase.LOBBY;config=settings.duplicate(true);config.game_id=game_id;config.port=port
 	players[1]={"peer_id":1,"display_name":name,"seat":0,"ready":true,"connected":true};_sync_lobby();return "OK"
 func create_client(nickname:String,address:String,port:int)->String:
-	clean_session();var name:=GameConstants.sanitize_nickname(nickname)
+	clean_session();var name:String=GameConstants.sanitize_nickname(nickname)
 	if name.is_empty() or address.strip_edges().is_empty() or address.length()>255 or not GameConstants.valid_port(port):return "INVALID_CONFIG"
-	SessionState.nickname=name;_peer=ENetMultiplayerPeer.new();var error:=_peer.create_client(address.strip_edges(),port)
+	SessionState.nickname=name;_peer=ENetMultiplayerPeer.new();var error:Error=_peer.create_client(address.strip_edges(),port)
 	if error!=OK:_peer=null;return "CLIENT_CREATE_FAILED"
 	multiplayer.multiplayer_peer=_peer;phase=SessionPhase.OFFLINE;_connection_timer=_timer(GameConstants.CONNECTION_TIMEOUT_SECONDS,_on_connection_timeout);return "OK"
 func _timer(seconds:float,callback:Callable)->Timer:
-	var timer:=Timer.new();timer.one_shot=true;timer.wait_time=seconds;add_child(timer);timer.timeout.connect(callback);timer.start();return timer
+	var timer:Timer=Timer.new();timer.one_shot=true;timer.wait_time=seconds;add_child(timer);timer.timeout.connect(callback);timer.start();return timer
 func _on_connected()->void:
 	_cancel_timer(_connection_timer);connection_status.emit("Conectado; registrando jogador...");register_player.rpc_id(1,GameConstants.PROTOCOL_VERSION,SessionState.nickname)
 func _on_connection_failed()->void:clean_session();connection_status.emit("Não foi possível conectar.")
@@ -39,18 +39,18 @@ func _on_peer_disconnected(id:int)->void:
 		if phase==SessionPhase.LOBBY:_sync_lobby()
 		elif phase in [SessionPhase.LOADING,SessionPhase.MATCH_ACTIVE]:phase=SessionPhase.MATCH_PAUSED;notify_interruption.rpc("Jogador desconectado; partida pausada.");session_interrupted.emit("Jogador desconectado; partida pausada.")
 @rpc("any_peer","call_remote","reliable") func register_player(protocol:int,nickname:String)->void:
-	var sender:=multiplayer.get_remote_sender_id()
+	var sender:int=multiplayer.get_remote_sender_id()
 	if not multiplayer.is_server():return
 	if protocol!=GameConstants.PROTOCOL_VERSION:_reject_and_disconnect(sender,"PROTOCOL_MISMATCH");return
 	if phase!=SessionPhase.LOBBY:_reject_and_disconnect(sender,"MATCH_ALREADY_STARTED");return
 	if players.size()>=GameConstants.MAX_TOTAL_PLAYERS:_reject_and_disconnect(sender,"ROOM_FULL");return
-	var clean:=GameConstants.sanitize_nickname(nickname)
+	var clean:String=GameConstants.sanitize_nickname(nickname)
 	if clean.is_empty():_reject_and_disconnect(sender,"INVALID_MESSAGE");return
 	clean=_unique_name(clean);players[sender]={"peer_id":sender,"display_name":clean,"seat":players.size(),"ready":true,"connected":true};receive_session.rpc_id(sender,session_id,config,players.values());_sync_lobby()
 func _unique_name(base:String)->String:
-	var names:=players.values().map(func(player:Dictionary)->String:return player.display_name)
+	var names:Array=players.values().map(func(player:Dictionary)->String:return String(player.get("display_name", "")))
 	if base not in names:return base
-	var suffix:=2
+	var suffix:int=2
 	while "%s (%d)"%[base,suffix] in names:suffix+=1
 	return "%s (%d)"%[base,suffix]
 func _reject_and_disconnect(id:int,reason:String)->void:receive_rejection.rpc_id(id,reason);await get_tree().create_timer(0.2).timeout;_peer.disconnect_peer(id)
@@ -76,7 +76,7 @@ func notify_scene_ready()->void:
 	if multiplayer.is_server():client_scene_ready(match_id)
 	else:client_scene_ready.rpc_id(1,match_id)
 @rpc("any_peer","call_local","reliable") func client_scene_ready(ready_match:int)->void:
-	var sender:=multiplayer.get_remote_sender_id();if sender==0:sender=1
+	var sender:int=multiplayer.get_remote_sender_id();if sender==0:sender=1
 	if not multiplayer.is_server() or phase!=SessionPhase.LOADING or ready_match!=match_id:return
 	_ready_peers[sender]=true
 	if _ready_peers.size()==players.size():_cancel_timer(_scene_timer);_begin_match()
@@ -85,30 +85,51 @@ func _scene_ready_timeout()->void:phase=SessionPhase.LOBBY;notify_interruption.r
 @rpc("authority","call_remote","reliable") func notify_interruption(reason:String)->void:
 	session_interrupted.emit(reason)
 func _begin_match()->void:
-	_controller=BaseMatchController.new();add_child(_controller);var ids:Array=players.keys();ids.sort();var engine:RefCounted
-	match config.game_id:"uno":engine=UnoRules.new();"caxeta":engine=CaxetaRules.new();"truco":engine=TrucoRules.new()
+	_controller=BaseMatchController.new()
+	add_child(_controller)
+	var ids:Array=players.keys()
+	ids.sort()
+	var game_id: String = String(config.get("game_id", ""))
+	var engine:RefCounted
+	match game_id:
+		"uno":
+			engine=UnoRules.new()
+		"caxeta":
+			engine=CaxetaRules.new()
+		"truco":
+			engine=TrucoRules.new()
+		_:
+			push_error("Jogo inválido ao iniciar partida: %s" % game_id)
+			_controller.queue_free()
+			_controller = null
+			phase=SessionPhase.LOBBY
+			return
 	_controller.snapshots_ready.connect(_broadcast_snapshots);_controller.match_finished.connect(_match_finished);_controller.initialize(engine,ids,randi(),config);phase=SessionPhase.MATCH_ACTIVE
 func submit_action(action_type:String,payload:Dictionary={})->int:
-	var action_id:=_next_action_id;_next_action_id+=1;var envelope:=NetworkProtocol.envelope(session_id,match_id,action_id,state_version,action_type,payload)
+	var action_id:int=_next_action_id;_next_action_id+=1;var envelope:Dictionary=NetworkProtocol.envelope(session_id,match_id,action_id,state_version,action_type,payload)
 	if multiplayer.is_server():_process_action(1,envelope)
 	else:request_action.rpc_id(1,envelope)
 	return action_id
 @rpc("any_peer","call_remote","reliable") func request_action(envelope:Dictionary)->void:
-	var sender:=multiplayer.get_remote_sender_id();if not multiplayer.is_server():return
+	var sender:int=multiplayer.get_remote_sender_id();if not multiplayer.is_server():return
 	_process_action(sender,envelope)
 func _process_action(sender:int,envelope:Dictionary)->void:
-	var validation:=NetworkProtocol.validate(envelope)
-	if validation!="OK":_answer(sender,envelope.get("client_action_id",-1),false,validation);return
+	var validation:String=NetworkProtocol.validate(envelope)
+	if validation!="OK":_answer(sender,int(envelope.get("client_action_id",-1)),false,validation);return
 	if envelope.session_id!=session_id:_answer(sender,envelope.client_action_id,false,"INVALID_SESSION");return
 	if envelope.match_id!=match_id:_answer(sender,envelope.client_action_id,false,"INVALID_MATCH");return
 	if not players.has(sender):_answer(sender,envelope.client_action_id,false,"UNREGISTERED_PEER");return
-	var key:="%d:%d"%[sender,envelope.client_action_id]
+	var key:String="%d:%d"%[sender,int(envelope.get("client_action_id", -1))]
 	if _action_cache.has(key):_send_answer(sender,_action_cache[key]);return
 	if phase!=SessionPhase.MATCH_ACTIVE:_answer(sender,envelope.client_action_id,false,"INVALID_PHASE");return
 	if envelope.expected_state_version!=state_version:_answer(sender,envelope.client_action_id,false,"STALE_STATE");return
-	var action:=envelope.payload.duplicate(true);action.type=envelope.action_type;var result:=_controller.process_action(sender,action);_answer(sender,envelope.client_action_id,result.accepted,result.reason_code)
+	var payload_value: Variant = envelope.get("payload", {})
+	var action: Dictionary = (payload_value as Dictionary).duplicate(true)
+	action.type=String(envelope.get("action_type", ""))
+	var result:Dictionary=_controller.process_action(sender,action)
+	_answer(sender,int(envelope.get("client_action_id", -1)),bool(result.get("accepted", false)),String(result.get("reason_code", "INVALID_MESSAGE")))
 func _answer(sender:int,id:int,accepted:bool,reason:String)->void:
-	var answer={"client_action_id":id,"accepted":accepted,"reason_code":reason,"state_version":state_version};var key:="%d:%d"%[sender,id];_action_cache[key]=answer
+	var answer:Dictionary={"client_action_id":id,"accepted":accepted,"reason_code":reason,"state_version":state_version};var key:String="%d:%d"%[sender,id];_action_cache[key]=answer
 	while _action_cache.size()>GameConstants.MAX_ACTIONS_REMEMBERED_PER_PEER*players.size():_action_cache.erase(_action_cache.keys()[0])
 	_send_answer(sender,answer)
 func _send_answer(sender:int,answer:Dictionary)->void:
@@ -150,7 +171,7 @@ func _reseat()->void:
 	var list:Array=players.values();list.sort_custom(func(a:Dictionary,b:Dictionary)->bool:return a.seat<b.seat)
 	for index in list.size():list[index].seat=index
 func get_lan_addresses()->PackedStringArray:
-	var result:=PackedStringArray()
+	var result:PackedStringArray=PackedStringArray()
 	for address in IP.get_local_addresses():
 		if address in ["127.0.0.1","0.0.0.0","::1",""] or address.contains(":"):continue
 		if address not in result:result.append(address)

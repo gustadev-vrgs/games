@@ -15,7 +15,7 @@ static func valid_port(port: int) -> bool: return port >= MIN_PORT and port <= M
 static func player_count_valid(game_id: String, count: int) -> bool:
 	return (game_id == "uno" and count >= 2 and count <= 6) or (game_id == "caxeta" and count >= 2 and count <= 5) or (game_id == "truco" and count in [2, 4])
 static func sanitize_nickname(value: String) -> String:
-	var clean := ""; var space := false
+	var clean: String = ""; var space: bool = false
 	for character in value.strip_edges():
 		if character.unicode_at(0) < 32: continue
 		if character == " ":

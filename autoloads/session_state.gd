@@ -1,8 +1,8 @@
 extends Node
 enum AppPhase { BOOT, MAIN_MENU, HOST_SETUP, JOIN_SETUP, CONNECTING, LOBBY, LOADING_MATCH, IN_MATCH, RESULTS, DISCONNECTING }
 var app_phase: AppPhase = AppPhase.BOOT
-var session_id := ""; var match_id := 0; var game_id := ""; var local_peer_id := 1; var is_host := false
-var nickname := ""; var approved_config := {}; var players: Array[Dictionary] = []; var public_state := {}; var private_state := {}; var state_version := -1
+var session_id: String = ""; var match_id: int = 0; var game_id: String = ""; var local_peer_id: int = 1; var is_host: bool = false
+var nickname: String = ""; var approved_config: Dictionary = {}; var players: Array[Dictionary] = []; var public_state: Dictionary = {}; var private_state: Dictionary = {}; var state_version: int = -1
 func reset_match() -> void: match_id = 0; public_state.clear(); private_state.clear(); state_version = -1
 func reset_all() -> void: reset_match(); session_id = ""; game_id = ""; is_host = false; approved_config.clear(); players.clear(); app_phase = AppPhase.MAIN_MENU
 func accept_public_snapshot(snapshot: Dictionary) -> bool:

@@ -1,18 +1,18 @@
 class_name CaxetaRules
 extends RefCounted
 enum Phase { DEALING, MUST_DRAW, MAY_KNOCK_TEN_OR_DISCARD, ROUND_END, MATCH_END }
-var solver := CaxetaMeldSolver.new()
+var solver: CaxetaMeldSolver = CaxetaMeldSolver.new()
 func create_initial_state(peer_ids: Array, rng: RandomNumberGenerator, lives: int = 7) -> Dictionary:
-	var state := {"game_id":"caxeta","players":peer_ids.duplicate(),"hands":{},"lives":{},"eliminated":[],"starter_index":0,"current_index":0,"state_version":0,"winner":-1,"round_end_emitted":false,"total_cards":104}
+	var state: Dictionary = {"game_id":"caxeta","players":peer_ids.duplicate(),"hands":{},"lives":{},"eliminated":[],"starter_index":0,"current_index":0,"state_version":0,"winner":-1,"round_end_emitted":false,"total_cards":104}
 	for id in peer_ids: state.hands[id]=[]; state.lives[id]=lives
 	_start_round(state,rng); return state
 func _start_round(state: Dictionary, rng: RandomNumberGenerator) -> void:
-	var deck := DeckBuilder.shuffle(DeckBuilder.build_caxeta(),rng)
+	var deck: Array[Dictionary] = DeckBuilder.shuffle(DeckBuilder.build_caxeta(),rng)
 	for id in state.players: state.hands[id] = []
 	for amount in 9:
 		for id in state.players:
 			if id not in state.eliminated: state.hands[id].append(deck.pop_back())
-	var turn: Dictionary = deck.pop_back(); var next_rank := (DeckBuilder.CAXETA_RANKS.find(turn.rank)+1)%13
+	var turn: Dictionary = deck.pop_back(); var next_rank: int = (DeckBuilder.CAXETA_RANKS.find(turn.rank)+1)%13
 	state.draw_pile=deck; state.discard=[]; state.turn_card=turn; state.wild={"rank":DeckBuilder.CAXETA_RANKS[next_rank],"suit":turn.suit}; state.phase=Phase.MUST_DRAW; state.current_index=state.starter_index; state.round_end_emitted=false
 func validate_action(state: Dictionary, actor_id: int, action: Dictionary) -> Dictionary:
 	if state.players[state.current_index] != actor_id: return ActionResult.rejected("NOT_YOUR_TURN")
@@ -23,7 +23,7 @@ func validate_action(state: Dictionary, actor_id: int, action: Dictionary) -> Di
 		return ActionResult.rejected("MUST_DRAW_FIRST")
 	if state.phase != Phase.MAY_KNOCK_TEN_OR_DISCARD: return ActionResult.rejected("INVALID_PHASE")
 	if kind == "KNOCK_TEN":
-		var solved := solver.can_partition_into_melds(state.hands[actor_id],state.wild)
+		var solved: Dictionary = solver.can_partition_into_melds(state.hands[actor_id],state.wild)
 		if not solved.valid: return ActionResult.rejected("INVALID_KNOCK")
 		for meld in solved.melds:
 			if meld.size() >= 4: return ActionResult.accepted()
@@ -32,12 +32,12 @@ func validate_action(state: Dictionary, actor_id: int, action: Dictionary) -> Di
 		var hand: Array = state.hands[actor_id]; var uid: int = action.get("card_uid",-1)
 		if not hand.any(func(card: Dictionary) -> bool: return card.uid == uid): return ActionResult.rejected("CARD_NOT_OWNED")
 		if action.get("declare_knock",false):
-			var remaining := hand.filter(func(card: Dictionary) -> bool: return card.uid != uid)
+			var remaining: Array = hand.filter(func(card: Dictionary) -> bool: return card.uid != uid)
 			if not solver.can_partition_into_melds(remaining,state.wild).valid: return ActionResult.rejected("INVALID_KNOCK")
 		return ActionResult.accepted()
 	return ActionResult.rejected("INVALID_MESSAGE")
 func apply_action(state: Dictionary, actor_id: int, action: Dictionary, rng: RandomNumberGenerator) -> Dictionary:
-	var result := validate_action(state,actor_id,action)
+	var result: Dictionary = validate_action(state,actor_id,action)
 	if not result.accepted: return result
 	if action.type == "DRAW_PILE":
 		if state.draw_pile.is_empty(): _recycle(state,rng)
@@ -76,7 +76,7 @@ func _next_active_index(state: Dictionary, from: int) -> int:
 		if state.players[candidate] not in state.eliminated:return candidate
 	return from
 func build_public_snapshot(state: Dictionary)->Dictionary:
-	var counts:={}
+	var counts: Dictionary={}
 	for id in state.players: counts[id]=state.hands[id].size()
 	return {"game_id":"caxeta","phase":state.phase,"current_player":state.players[state.current_index],"lives":state.lives.duplicate(),"eliminated":state.eliminated.duplicate(),"turn_card":state.turn_card,"wild":state.wild,"discard_top":{} if state.discard.is_empty() else state.discard.back(),"card_counts":counts,"winner":state.winner,"state_version":state.state_version}
 func build_private_snapshot(state:Dictionary,peer_id:int)->Dictionary:return {"peer_id":peer_id,"hand":state.hands.get(peer_id,[]).duplicate(true),"state_version":state.state_version}

@@ -32,7 +32,6 @@ horizontal_alignment = 1
 [node name="Address" type="LineEdit" parent="Margin/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
-text = ""
 text = "127.0.0.1"
 placeholder_text = "IP do host"
 [node name="Port" type="SpinBox" parent="Margin/VBox"]
