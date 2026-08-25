@@ -1,6 +1,6 @@
 class_name GameUI
 extends Control
-var pending_action:=-1
+var pending_action:int=-1
 var cards_by_uid:Dictionary={}
 @onready var hand:HBoxContainer=%Hand
 func _ready()->void:
@@ -13,13 +13,13 @@ func _private(snapshot:Dictionary)->void:
 	for child in hand.get_children():child.queue_free()
 	for card in snapshot.get("hand",[]):
 		cards_by_uid[card.uid]=card
-		var visual:=preload("res://scenes/shared/card_visual.tscn").instantiate();hand.add_child(visual);visual.configure(card);visual.card_clicked.connect(_card)
+		var visual:CardVisual=preload("res://scenes/shared/card_visual.tscn").instantiate() as CardVisual;hand.add_child(visual);visual.configure(card);visual.card_clicked.connect(_card)
 func _card(uid:int)->void:
 	if pending_action!=-1:return
 	var card:Dictionary=cards_by_uid.get(uid,{})
 	var game:String=SessionState.game_id
-	var type:="PLAY_CARD"
-	var payload:={"card_uid":uid}
+	var type:String="PLAY_CARD"
+	var payload:Dictionary={"card_uid":uid}
 	if game=="uno":
 		payload.declared_uno=%DeclareUno.button_pressed
 		payload.chosen_color=%Color.get_item_text(%Color.selected) if card.get("action","") in ["wild","wild_draw_four"] else ""

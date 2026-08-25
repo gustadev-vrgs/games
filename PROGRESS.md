@@ -1,8 +1,8 @@
 # Progresso
 
 - **Última fase implementada:** Fase 17 — Polimento, exportação e documentação.
-- **Fase atual:** auditoria estática final e validação local pendente.
+- **Fase atual:** **CORREÇÃO IMPLEMENTADA — VALIDAÇÃO LOCAL PENDENTE**.
 - **Arquivos implementados:** configuração Godot/exportação; três Autoloads; dados, protocolo e construtor de baralhos; regras/controladores/UI de Uno, Caxeta e Truco; 13 cenas e 40 scripts GDScript; testes puros, de cena e rede; documentação/checkpoints.
-- **Verificações realizadas:** inventário, caminhos `res://`, recursos externos das cenas, scripts anexados, chaves privadas em snapshots públicos, RPCs privados direcionados, proteção de transição/ação/fim, ausência de TODO e status Git.
+- **Verificações realizadas:** inventário integral de `.gd`, `.tscn`, testes e `project.godot`; auditorias de inferência `:=`, `match`, `Dictionary.get()`, `back()`/`pop_*()`, valores de `SpinBox`, caminhos `res://`, recursos externos e propriedades duplicadas de cenas. Foram corrigidos o `match` inválido de início da partida, inferências sobre `Variant`, conversões de valores dinâmicos e a propriedade `text` duplicada de `Address`.
 - **Validações locais pendentes:** todos os itens numerados em `LOCAL_VALIDATION.md`, especialmente parser/importação Godot 4.5.1, testes headless, interação, export Windows e LAN em dois PCs.
-- **Próximo trabalho exato:** executar os comandos 2–7 de `LOCAL_VALIDATION.md`; se o parser reportar erro, corrigir a primeira mensagem sem alterar regras e repetir importação/testes antes dos procedimentos 8–17.
+- **Próximo trabalho exato:** executar, com Godot 4.5.1 stable, `godot --version`, `godot --headless --path . --import`, `godot --headless --path . --script res://tests/test_runner.gd` e `godot --headless --path . --script res://tests/scene_smoke_runner.gd`; depois executar os smoke tests servidor/cliente dos itens 6–7 de `LOCAL_VALIDATION.md`.

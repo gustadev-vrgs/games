@@ -1,7 +1,7 @@
 class_name CardVisual
 extends Button
 signal card_clicked(card_uid:int)
-var card_uid:=-1;var face_up:=true;var selected:=false;var playable:=true;var pending:=false
+var card_uid:int=-1;var face_up:bool=true;var selected:bool=false;var playable:bool=true;var pending:bool=false
 func _ready()->void:pressed.connect(_clicked)
 func configure(card:Dictionary,up:bool=true)->void:
 	card_uid=card.get("uid",-1);face_up=up;text=_label(card) if up else "🂠";tooltip_text=text;_refresh()

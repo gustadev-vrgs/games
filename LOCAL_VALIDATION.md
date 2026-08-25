@@ -1,5 +1,7 @@
 # Validação local obrigatória — Godot 4.5.1 stable
 
+> **Status: CORREÇÃO IMPLEMENTADA — VALIDAÇÃO LOCAL PENDENTE.** O ambiente da correção não disponibilizou `godot` nem `godot4`; portanto, os comandos abaixo não foram declarados como aprovados e devem ser executados em uma instalação local da versão exata.
+
 1. Instale **Godot 4.5.1 stable** e os templates de exportação da mesma versão.
 2. Na raiz do repositório, confirme: `godot --version` (deve reportar `4.5.1.stable`).
 3. Importe recursos: `godot --headless --path . --import`.
