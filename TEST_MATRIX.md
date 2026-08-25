@@ -5,7 +5,10 @@
 | Baralhos e RNG | `tests/test_decks.gd` | 40/104/108 cartas, UIDs e embaralhamento determinístico | Criada; execução Godot pendente |
 | Uno | `tests/test_uno.gd` | distribuição, jogabilidade, efeitos, +4, Uno, reciclagem e conservação | Criada; execução Godot pendente |
 | Caxeta/solver | `tests/test_caxeta.gd` | trincas, sequências, curingas, batidas, vidas e conservação | Criada; execução Godot pendente |
-| Truco | `tests/test_truco.gd` | manilha, vazas, empates, pedidos, 1x1/2x2, placar e conservação | Criada; execução Godot pendente |
+| Truco | `tests/test_truco.gd` | manilha, turnos, empates, pedidos, 1x1/2x2, placar e conservação | Criada; execução Godot pendente |
+| Truco espanhol/encoberta | `tests/test_truco.gd` | 40 cartas, ciclo da manilha, restrição, conservação e sanitização pública | Criada; execução Godot pendente |
+| Texturas/localização | `tests/test_decks.gd`, galeria espanhola | 40 frentes + verso como Texture2D; Truco, Caxeta e Uno em PT-BR | Criada; execução Godot pendente |
+| Saída pela interface | `tests/leave_flow_runner.gd` | botão, cancelamento, confirmação, limpeza offline e menu em Uno/Caxeta/Truco | Criada; execução Godot pendente |
 | Invariantes/privacidade | `tests/test_invariants.gd` | snapshots públicos/privados, versões e rejeição sem mutação | Criada; execução Godot pendente |
 | Cenas e componentes | `tests/scene_smoke_runner.gd` | 14 telas/componentes, incluindo ajuda e três mesas | Criada; execução Godot pendente |
 | ENet local | `tests/network_smoke_server.gd`, `tests/network_smoke_client.gd` | conexão real em processos separados | Criada; execução Godot pendente |

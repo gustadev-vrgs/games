@@ -7,7 +7,8 @@ func _ready() -> void:
 	%Close.pressed.connect(_close_room)
 	%Back.visible = multiplayer.is_server()
 	%Close.visible = not SessionState.session_id.is_empty()
-	%Close.text = "Encerrar sala" if multiplayer.is_server() else "Sair da sala"
+	%Close.text = "Sair para o menu"
+	%Close.custom_minimum_size = Vector2(140.0, 40.0)
 
 func _result_summary(snapshot: Dictionary) -> String:
 	var winner: int = int(snapshot.get("winner", -1))
@@ -29,13 +30,8 @@ func _player_name(peer_id: int) -> String:
 
 func _close_room() -> void:
 	var dialog: ConfirmationDialog = ConfirmationDialog.new()
-	dialog.dialog_text = "Deseja encerrar a sala? Todos os jogadores serão desconectados." if multiplayer.is_server() else "Deseja sair da sala? A partida atual será interrompida."
-	dialog.ok_button_text = %Close.text
-	dialog.confirmed.connect(func() -> void:
-		if multiplayer.is_server():
-			NetworkManager.close_room()
-		else:
-			NetworkManager.leave_room()
-	)
+	dialog.dialog_text = "Deseja encerrar a sala? Todos os jogadores voltarão ao menu principal." if multiplayer.is_server() else "Deseja sair da sala e voltar ao menu principal?"
+	dialog.ok_button_text = "Encerrar sala" if multiplayer.is_server() else "Sair da sala"
+	dialog.confirmed.connect(NetworkManager.leave_session)
 	add_child(dialog)
 	dialog.popup_centered(Vector2i(520, 180))

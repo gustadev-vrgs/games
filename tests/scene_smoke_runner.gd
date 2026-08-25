@@ -1,5 +1,5 @@
 extends SceneTree
-const SCENES=["app_root","main_menu","how_to_play","host_setup","join_setup","lobby","loading_match","results_screen","shared/card_visual","shared/player_panel","shared/message_banner","uno/uno_game","caxeta/caxeta_game","truco/truco_game"]
+const SCENES=["app_root","main_menu","how_to_play","host_setup","join_setup","lobby","loading_match","results_screen","shared/card_visual","shared/player_panel","shared/message_banner","uno/uno_game","caxeta/caxeta_game","truco/truco_game","../tests/scenes/truco_spanish_deck_gallery"]
 func _initialize()->void:call_deferred("_run")
 func _run()->void:
 	var failures: int=0

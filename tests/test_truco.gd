@@ -1,10 +1,10 @@
 class_name TestTruco
 extends RefCounted
 func run(t:TestHelpers)->void:
-	var rules: TrucoRules=TrucoRules.new();var four: Dictionary=CardData.make(1,"truco","4","clubs");var three: Dictionary=CardData.make(2,"truco","3","diamonds")
+	var rules: TrucoRules=TrucoRules.new();var four: Dictionary=CardData.make(1,"truco","4","paus");var three: Dictionary=CardData.make(2,"truco","3","ouros")
 	t.equal(rules.compare_truco_cards(three,four,"5"),1,"ordem normal");t.equal(rules.compare_truco_cards(four,four,"5"),0,"empate")
-	var clubs: Dictionary=CardData.make(3,"truco","5","clubs");var diamonds: Dictionary=CardData.make(4,"truco","5","diamonds");t.equal(rules.compare_truco_cards(clubs,diamonds,"5"),1,"força manilha")
-	t.equal(rules.hand_result([0,0]),0,"duas vazas");t.equal(rules.hand_result([-1,1]),1,"empate primeira")
+	var paus: Dictionary=CardData.make(3,"truco","5","paus");var ouros: Dictionary=CardData.make(4,"truco","5","ouros");t.equal(rules.compare_truco_cards(paus,ouros,"5"),1,"força manilha")
+	t.equal(rules.hand_result([0,0]),0,"dois turnos");t.equal(rules.hand_result([-1,1]),1,"empate primeira")
 	var rng: RandomNumberGenerator=RandomNumberGenerator.new();rng.seed=4;var state: Dictionary=rules.create_initial_state([1,2,3,4],rng);t.equal(rules.validate_invariants(state),"OK","conservação Truco 2x2")
 	t.equal(rules.next_raise_value(1), 3, "progressão 1 para 3")
 	t.equal(rules.next_raise_value(3), 6, "progressão 3 para 6")
@@ -27,11 +27,34 @@ func run(t:TestHelpers)->void:
 	rules.apply_action(reveal, 2, {"type":"PLAY_CARD","card_uid":second_uid}, rng)
 	t.equal(reveal.phase, TrucoRules.Phase.TRICK_REVEAL, "última carta entra em revelação")
 	t.equal(reveal.played.size(), 2, "cartas permanecem abertas na revelação")
-	t.equal(reveal.trick_history.size(), 0, "próxima vaza não começa antes da transição")
+	t.equal(reveal.trick_history.size(), 0, "próximo turno não começa antes da transição")
 	t.check(rules.advance_reveal(reveal, rng), "transição autoritativa avança revelação")
-	t.equal(reveal.trick_history.size(), 1, "histórico registra a vaza uma vez")
+	t.equal(reveal.trick_history.size(), 1, "histórico registra o turno uma vez")
 	t.equal(reveal.trick_history[0].plays[0].peer_id, 1, "histórico preserva ordem e jogador")
 	t.check(not rules.advance_reveal(reveal, rng), "transição antiga não avança estado novo")
+	var spanish: Array[Dictionary] = DeckBuilder.build_truco()
+	t.equal(spanish.size(), 40, "baralho espanhol tem 40 cartas")
+	t.check(spanish.all(func(card: Dictionary) -> bool: return card.rank not in ["8", "9"]), "baralho espanhol não contém 8 nem 9")
+	for suit: String in DeckBuilder.TRUCO_SUITS:
+		t.equal(spanish.filter(func(card: Dictionary) -> bool: return card.suit == suit).size(), 10, "dez cartas por naipe espanhol")
+	for vira_rank: String in ["4", "7", "10", "11", "12", "3"]:
+		var expected: Dictionary = {"4":"5", "7":"10", "10":"11", "11":"12", "12":"1", "3":"4"}
+		t.equal(DeckBuilder.TRUCO_RANKS[(DeckBuilder.TRUCO_RANKS.find(vira_rank) + 1) % 10], expected[vira_rank], "manilha cíclica para vira " + vira_rank)
+	var hidden: Dictionary = rules.create_initial_state([1, 2], rng)
+	var hidden_uid: int = int(hidden.hands[1][0].uid)
+	t.check(not rules.validate_action(hidden, 1, {"type":"PLAY_CARD_FACE_DOWN", "card_uid":hidden_uid}).accepted, "encoberta rejeitada no primeiro turno")
+	hidden.trick_number = 2
+	t.check(rules.apply_action(hidden, 1, {"type":"PLAY_CARD_FACE_DOWN", "card_uid":hidden_uid}, rng).accepted, "encoberta permitida no segundo turno")
+	t.equal(hidden.hands[1].size(), 2, "encoberta sai da mão")
+	t.check(not hidden.played[0].card.is_empty(), "estado autoritativo conserva carta real")
+	var hidden_public: Dictionary = rules.build_public_snapshot(hidden)
+	t.check(hidden_public.played[0].card.is_empty(), "snapshot público sanitiza carta encoberta")
+	t.check(not hidden_public.played[0].card.has("rank") and not hidden_public.played[0].card.has("suit"), "snapshot não revela rank nem naipe")
+	t.equal(rules.validate_invariants(hidden), "OK", "encoberta participa da conservação")
+	var second_hidden_uid: int = int(hidden.hands[2][0].uid)
+	rules.apply_action(hidden, 2, {"type":"PLAY_CARD_FACE_DOWN", "card_uid":second_hidden_uid}, rng)
+	t.equal(hidden.reveal_result.winner_team, TrucoRules.DRAW, "todas encobertas produzem empate")
+	t.equal(hidden.reveal_result.winning_peer, -1, "carta encoberta nunca vence")
 	var explicit_config: Dictionary = {"team_by_peer": {1: 0, 4: 0, 2: 1, 3: 1}}
 	var team_state: Dictionary = rules.create_initial_state([1, 2, 4, 3], rng, explicit_config)
 	t.equal(team_state.team_by_peer[4], 0, "equipe explícita não depende da entrada")

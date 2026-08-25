@@ -23,7 +23,8 @@ func _ready() -> void:
 	NetworkManager.lobby_updated.connect(_render)
 	NetworkManager.connection_status.connect(_show_result)
 	%Start.visible = multiplayer.is_server()
-	%Leave.text = "Encerrar sala" if multiplayer.is_server() else "Sair da sala"
+	%Leave.text = "Sair para o menu"
+	%Leave.custom_minimum_size = Vector2(140.0, 40.0)
 	_render(NetworkManager.players.values())
 
 func _render(raw_players: Array) -> void:
@@ -32,7 +33,7 @@ func _render(raw_players: Array) -> void:
 	players.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a.seat) < int(b.seat))
 	var game_id: String = String(NetworkManager.config.get("game_id", SessionState.game_id))
 	var maximum: int = GameConstants.maximum_players_for(NetworkManager.config)
-	%Details.text = "%s\nJogadores: %d/%d · vagas: %d\nPorta UDP: %s" % [game_id.to_upper(), players.size(), maximum, maximum - players.size(), NetworkManager.config.get("port", 7000)]
+	%Details.text = "%s\n%s de %d · vagas: %d\nPorta UDP: %s" % [game_id.to_upper(), CardFormatter.players(players.size()), maximum, maximum - players.size(), NetworkManager.config.get("port", 7000)]
 	var lines: PackedStringArray = []
 	for player: Dictionary in players:
 		lines.append("%d. %s%s · %s · %s" % [int(player.seat) + 1, String(player.display_name), " (host)" if int(player.peer_id) == 1 else "", "Pronto" if bool(player.ready) else "Não pronto", "Conectado" if bool(player.connected) else "Desconectado"])
@@ -90,7 +91,8 @@ func _start() -> void:
 
 func _leave() -> void:
 	var dialog: ConfirmationDialog = ConfirmationDialog.new()
-	dialog.dialog_text = "Deseja encerrar a sala?" if multiplayer.is_server() else "Deseja sair da sala?"
-	dialog.confirmed.connect(func() -> void: NetworkManager.close_room() if multiplayer.is_server() else NetworkManager.leave_room())
+	dialog.dialog_text = "Deseja encerrar a sala? Todos os jogadores voltarão ao menu principal." if multiplayer.is_server() else "Deseja sair da sala e voltar ao menu principal?"
+	dialog.ok_button_text = "Encerrar sala" if multiplayer.is_server() else "Sair da sala"
+	dialog.confirmed.connect(NetworkManager.leave_session)
 	add_child(dialog)
 	dialog.popup_centered(Vector2i(520, 180))

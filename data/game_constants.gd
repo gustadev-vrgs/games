@@ -1,7 +1,7 @@
 class_name GameConstants
 extends RefCounted
 
-const PROTOCOL_VERSION: int = 2
+const PROTOCOL_VERSION: int = 3
 const DEFAULT_PORT: int = 7000
 const MIN_PORT: int = 1024
 const MAX_PORT: int = 65535
