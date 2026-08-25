@@ -24,13 +24,20 @@ var card_uid: int = -1
 var card_data: Dictionary = {}
 var face_up: bool = true
 var selected: bool = false
-var playable: bool = true
+var interactable: bool = true
+var playable_hint: bool = false
 var pending: bool = false
 var recently_played: bool = false
 var _hovered: bool = false
+var _visual_lift: float = 0.0:
+	set(value):
+		_visual_lift = value
+		queue_redraw()
+var _motion_tween: Tween
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(88.0, 126.0)
+	pivot_offset = Vector2(44.0, 118.0)
 	focus_mode = Control.FOCUS_ALL
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	flat = true
@@ -49,10 +56,14 @@ func configure(card: Dictionary, up: bool = true) -> void:
 	tooltip_text = _tooltip()
 	_refresh()
 
-func set_state(new_selected: bool, new_playable: bool, new_pending: bool) -> void:
+func set_state(new_selected: bool, new_interactable: bool, new_playable_hint: bool, new_pending: bool) -> void:
+	var animate: bool = selected != new_selected
 	selected = new_selected
-	playable = new_playable
+	interactable = new_interactable
+	playable_hint = new_playable_hint
 	pending = new_pending
+	if animate:
+		_animate_transform()
 	_refresh()
 
 func set_recently_played(value: bool) -> void:
@@ -60,14 +71,14 @@ func set_recently_played(value: bool) -> void:
 	_refresh()
 
 func _draw() -> void:
-	var bounds: Rect2 = Rect2(Vector2(4.0, 6.0), size - Vector2(8.0, 12.0))
+	var bounds: Rect2 = Rect2(Vector2(4.0, 16.0 - _visual_lift), size - Vector2(8.0, 22.0))
 	var shadow: Rect2 = Rect2(bounds.position + Vector2(3.0, 4.0), bounds.size)
 	draw_style_box(_box(Color(0.0, 0.0, 0.0, 0.35), Color.TRANSPARENT, 12), shadow)
 	var background: Color = _background_color()
-	var border: Color = Color("d8b45b") if selected or recently_played else Color("d9d5c8")
-	if playable and face_up and not pending:
+	var border: Color = Color("f6c945") if selected or recently_played else Color("d9d5c8")
+	if playable_hint and face_up and not pending and not selected:
 		border = Color("55d98b")
-	draw_style_box(_box(background, border, 12, 3), bounds)
+	draw_style_box(_box(background, border, 12, 4 if selected else 3), bounds)
 	if not face_up:
 		_draw_back(bounds)
 		return
@@ -83,7 +94,11 @@ func _draw_uno(bounds: Rect2) -> void:
 	var value: String = _uno_value()
 	var ellipse_center: Vector2 = bounds.get_center()
 	draw_set_transform(ellipse_center, -0.35, Vector2.ONE)
-	draw_circle(Vector2.ZERO, minf(bounds.size.x, bounds.size.y) * 0.39, Color(1.0, 1.0, 1.0, 0.88))
+	if String(card_data.get("action", "")) in ["wild", "wild_draw_four"]:
+		for index: int in 4:
+			draw_colored_polygon(PackedVector2Array([Vector2.ZERO, Vector2.from_angle(index * PI * 0.5) * 34.0, Vector2.from_angle((index + 1) * PI * 0.5) * 34.0]), UNO_COLORS.values()[index] as Color)
+	else:
+		draw_circle(Vector2.ZERO, minf(bounds.size.x, bounds.size.y) * 0.39, Color(1.0, 1.0, 1.0, 0.88))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	_draw_centered(value, 29, Color("172229"), bounds)
 	_draw_text(value, bounds.position + Vector2(9.0, 24.0), 16, Color.WHITE)
@@ -157,18 +172,28 @@ func _draw_centered(value: String, font_size: int, color: Color, bounds: Rect2) 
 	_draw_text(value, position, font_size, color)
 
 func _refresh() -> void:
-	disabled = not playable or pending
-	modulate = Color(0.72, 0.72, 0.72) if not playable else Color.WHITE
-	position.y = -8.0 if selected else (-3.0 if _hovered and not disabled else 0.0)
+	disabled = not interactable or pending
+	modulate = Color(0.62, 0.66, 0.68) if disabled else Color.WHITE
 	queue_redraw()
+
+func _animate_transform() -> void:
+	if is_instance_valid(_motion_tween):
+		_motion_tween.kill()
+	_motion_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_motion_tween.tween_property(self, "_visual_lift", 11.0 if selected else 0.0, 0.14)
+	_motion_tween.tween_property(self, "scale", Vector2(1.045, 1.045) if selected else Vector2.ONE, 0.14)
 
 func _on_mouse_entered() -> void:
 	_hovered = true
-	_refresh()
+	if not selected and not disabled:
+		_visual_lift = 4.0
+		queue_redraw()
 
 func _on_mouse_exited() -> void:
 	_hovered = false
-	_refresh()
+	if not selected:
+		_visual_lift = 0.0
+		queue_redraw()
 
 func _on_pressed() -> void:
 	if not disabled:

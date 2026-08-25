@@ -96,7 +96,7 @@ func _finish_hand(state:Dictionary,team:int,value:int,rng:RandomNumberGenerator)
 func build_public_snapshot(state:Dictionary)->Dictionary:
 	var counts: Dictionary={}
 	for id in state.players:counts[id]=state.hands[id].size()
-	return {"game_id":"truco","phase":state.phase,"current_player":state.players[state.current_index],"turn_card":state.turn_card,"manilha":state.manilha,"played":state.played.duplicate(true),"scores":state.scores.duplicate(),"accepted_value":state.accepted_value,"target_value":state.target_value,"responding_team":state.responding_team,"card_counts":counts,"winner":state.winner,"state_version":state.state_version}
+	return {"game_id":"truco","phase":state.phase,"current_player":state.players[state.current_index],"turn_card":state.turn_card,"manilha":state.manilha,"played":state.played.duplicate(true),"scores":state.scores.duplicate(),"accepted_value":state.accepted_value,"target_value":state.target_value,"requesting_team":state.requesting_team,"responding_team":state.responding_team,"last_raise_team":state.last_raise_team,"card_counts":counts,"winner":state.winner,"state_version":state.state_version}
 func build_private_snapshot(state:Dictionary,peer_id:int)->Dictionary:return {"peer_id":peer_id,"hand":state.hands.get(peer_id,[]).duplicate(true),"team":state.players.find(peer_id)%2,"state_version":state.state_version}
 func validate_invariants(state:Dictionary)->String:
 	var cards:Array[Dictionary]=[];cards.append_array(state.draw_pile);cards.append(state.turn_card)

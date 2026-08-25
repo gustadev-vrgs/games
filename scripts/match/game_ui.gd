@@ -2,6 +2,7 @@ class_name GameUI
 extends Control
 
 const CARD_SCENE: PackedScene = preload("res://scenes/shared/card_visual.tscn")
+const ACTION_TIMEOUT_SECONDS: float = 8.0
 const ERROR_MESSAGES: Dictionary = {
 	"NOT_YOUR_TURN": "Aguarde sua vez.",
 	"CARD_NOT_OWNED": "Essa carta não está mais na sua mão.",
@@ -18,6 +19,8 @@ var pending_action: int = -1
 var selected_uid: int = -1
 var cards_by_uid: Dictionary = {}
 var public_snapshot: Dictionary = {}
+var private_snapshot: Dictionary = {}
+var _pending_timer: Timer
 
 @onready var hand: HBoxContainer = %Hand
 @onready var opponents: HBoxContainer = %Opponents
@@ -28,8 +31,13 @@ func _ready() -> void:
 	_connect_once(NetworkManager.public_snapshot_received, _on_public_snapshot)
 	_connect_once(NetworkManager.private_snapshot_received, _on_private_snapshot)
 	_connect_once(NetworkManager.action_answered, _on_action_answered)
-	_connect_once(NetworkManager.session_interrupted, _show_message)
+	_connect_once(NetworkManager.session_interrupted, _on_session_interrupted)
 	_connect_once(%Leave.pressed, _leave)
+	_pending_timer = Timer.new()
+	_pending_timer.one_shot = true
+	_pending_timer.wait_time = ACTION_TIMEOUT_SECONDS
+	_pending_timer.timeout.connect(_on_action_timeout)
+	add_child(_pending_timer)
 	NetworkManager.notify_scene_ready()
 	if not SessionState.public_state.is_empty():
 		_on_public_snapshot(SessionState.public_state)
@@ -42,6 +50,10 @@ func _connect_once(signal_value: Signal, callable: Callable) -> void:
 
 func _on_public_snapshot(snapshot: Dictionary) -> void:
 	public_snapshot = snapshot.duplicate(true)
+	if selected_uid != -1 and not _selection_can_survive(selected_uid):
+		selected_uid = -1
+		%Selection.text = "Selecione uma carta"
+		_refresh_hand_states()
 	_render_header()
 	_render_opponents()
 	_render_table()
@@ -51,8 +63,9 @@ func _on_public_snapshot(snapshot: Dictionary) -> void:
 		_show_message("Partida encerrada. Confira o resultado.")
 
 func _on_private_snapshot(snapshot: Dictionary) -> void:
+	private_snapshot = snapshot.duplicate(true)
+	var previous_selection: int = selected_uid
 	cards_by_uid.clear()
-	selected_uid = -1
 	_clear_children(hand)
 	var hand_value: Variant = snapshot.get("hand", [])
 	if not hand_value is Array:
@@ -67,8 +80,10 @@ func _on_private_snapshot(snapshot: Dictionary) -> void:
 		var visual: CardVisual = CARD_SCENE.instantiate() as CardVisual
 		hand.add_child(visual)
 		visual.configure(card, true)
-		visual.set_state(false, true, pending_action != -1)
+		visual.set_state(false, true, true, pending_action != -1)
 		visual.card_clicked.connect(_select_card)
+	selected_uid = previous_selection if _selection_can_survive(previous_selection) else -1
+	_refresh_hand_states()
 	%HandCount.text = "%d cartas na sua mão" % cards_by_uid.size()
 	_update_actions()
 
@@ -100,7 +115,7 @@ func _render_opponents() -> void:
 			back.custom_minimum_size = Vector2(35.0, 50.0)
 			backs.add_child(back)
 			back.configure({}, false)
-			back.playable = false
+			back.set_state(false, false, false, false)
 		panel.add_child(backs)
 		var count_label: Label = Label.new()
 		count_label.text = "%d carta(s)" % count
@@ -124,18 +139,15 @@ func _add_table_card(card: Dictionary, caption: String, face_up: bool = true) ->
 	var visual: CardVisual = CARD_SCENE.instantiate() as CardVisual
 	group.add_child(visual)
 	visual.configure(card, face_up)
-	visual.playable = false
+	visual.set_state(false, false, false, false)
 	table_cards.add_child(group)
 
 func _select_card(uid: int) -> void:
 	if pending_action != -1:
 		return
-	selected_uid = uid
-	for child: Node in hand.get_children():
-		if child is CardVisual:
-			var visual: CardVisual = child as CardVisual
-			visual.set_state(visual.card_uid == uid, true, false)
-	%Selection.text = "Carta selecionada: %s" % _card_name(cards_by_uid.get(uid, {}) as Dictionary)
+	selected_uid = -1 if selected_uid == uid else uid
+	_refresh_hand_states()
+	%Selection.text = "Selecione uma carta" if selected_uid == -1 else "Carta selecionada: %s" % _card_name(cards_by_uid.get(uid, {}) as Dictionary)
 	_update_actions()
 
 func submit(type: String, payload: Dictionary = {}) -> void:
@@ -143,6 +155,7 @@ func submit(type: String, payload: Dictionary = {}) -> void:
 		return
 	pending_action = NetworkManager.submit_action(type, payload)
 	_set_pending(true)
+	_pending_timer.start()
 	_show_message("Aguardando confirmação do host…")
 
 func submit_selected(type: String, extras: Dictionary = {}) -> void:
@@ -156,21 +169,67 @@ func submit_selected(type: String, extras: Dictionary = {}) -> void:
 func _on_action_answered(answer: Dictionary) -> void:
 	if int(answer.get("client_action_id", -1)) != pending_action:
 		return
+	_pending_timer.stop()
 	pending_action = -1
 	_set_pending(false)
 	if bool(answer.get("accepted", false)):
-		_show_message("Jogada confirmada.")
+		selected_uid = -1
+		_refresh_hand_states()
+		_show_message("Carta jogada com sucesso.")
 	else:
 		_show_message(_friendly_error(String(answer.get("reason_code", ""))))
 
-func _set_pending(value: bool) -> void:
+func _set_pending(_value: bool) -> void:
+	_refresh_hand_states()
+	_update_actions()
+
+func _on_action_timeout() -> void:
+	if pending_action == -1:
+		return
+	pending_action = -1
+	_set_pending(false)
+	_show_message("A confirmação da jogada demorou. Verifique a conexão e tente novamente.")
+
+func _on_session_interrupted(reason: String) -> void:
+	if is_instance_valid(_pending_timer):
+		_pending_timer.stop()
+	pending_action = -1
+	_set_pending(false)
+	_show_message(reason if not reason.is_empty() else "Conexão perdida. Voltando ao lobby…")
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if not event.is_pressed() or event.is_echo():
+		return
+	if event.is_action("ui_cancel") and selected_uid != -1 and pending_action == -1:
+		selected_uid = -1
+		_refresh_hand_states()
+		%Selection.text = "Selecione uma carta"
+		_update_actions()
+		get_viewport().set_input_as_handled()
+	elif event.is_action("ui_accept"):
+		var primary: BaseButton = _primary_action()
+		if is_instance_valid(primary) and not primary.disabled and pending_action == -1:
+			primary.pressed.emit()
+			get_viewport().set_input_as_handled()
+
+func _primary_action() -> BaseButton:
+	return null
+
+func _valid_selection_phases() -> Array[int]:
+	return []
+
+func _selection_can_survive(uid: int) -> bool:
+	return ActionAvailability.selection_still_valid(cards_by_uid, uid, public_snapshot, SessionState.local_peer_id, _valid_selection_phases())
+
+func _card_playable_hint(_card: Dictionary) -> bool:
+	return false
+
+func _refresh_hand_states() -> void:
 	for child: Node in hand.get_children():
 		if child is CardVisual:
 			var visual: CardVisual = child as CardVisual
-			visual.set_state(visual.card_uid == selected_uid, true, value)
-	for button: Node in %Actions.get_children():
-		if button is BaseButton:
-			(button as BaseButton).disabled = value
+			var card: Dictionary = cards_by_uid.get(visual.card_uid, {}) as Dictionary
+			visual.set_state(visual.card_uid == selected_uid, true, _card_playable_hint(card), pending_action != -1)
 
 func _update_actions() -> void:
 	pass

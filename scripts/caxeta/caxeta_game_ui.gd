@@ -6,6 +6,10 @@ func _ready() -> void:
 	%DrawDiscard.pressed.connect(func() -> void: submit("DRAW_DISCARD"))
 	%Discard.pressed.connect(_discard)
 	%Knock.pressed.connect(func() -> void: submit("KNOCK_TEN"))
+	%Discard.custom_minimum_size = Vector2(190.0, 48.0)
+	%DrawPile.tooltip_text = "Compra a carta fechada do monte"
+	%DrawDiscard.tooltip_text = "Compra a carta visível do descarte"
+	%Discard.tooltip_text = "Confirma o descarte selecionado"
 
 func _render_specific_table() -> void:
 	_add_table_card({}, "Monte", false)
@@ -35,10 +39,32 @@ func _update_actions() -> void:
 	if not is_node_ready():
 		return
 	var phase: int = int(public_snapshot.get("phase", 0))
-	%DrawPile.disabled = phase != 1 or pending_action != -1
-	%DrawDiscard.disabled = phase != 1 or pending_action != -1
-	%Discard.disabled = phase != 2 or selected_uid == -1 or pending_action != -1
-	%Knock.disabled = phase != 2 or pending_action != -1
+	var local_turn: bool = ActionAvailability.is_local_turn(public_snapshot, SessionState.local_peer_id)
+	%DrawPile.disabled = not local_turn or phase != 1 or pending_action != -1
+	var discard_value: Variant = public_snapshot.get("discard_top", {})
+	var has_discard: bool = discard_value is Dictionary and not (discard_value as Dictionary).is_empty()
+	%DrawDiscard.disabled = not local_turn or phase != 1 or not has_discard or pending_action != -1
+	%Discard.disabled = not ActionAvailability.caxeta_can_discard(public_snapshot, selected_uid, SessionState.local_peer_id) or pending_action != -1
+	%Knock.disabled = not local_turn or phase != 2 or pending_action != -1
+	%KnockNormal.disabled = %Discard.disabled
+	if pending_action == -1:
+		if not local_turn:
+			_show_message("Não é sua vez.")
+		elif phase == 1:
+			_show_message("Primeiro compre uma carta.")
+		elif selected_uid == -1:
+			_show_message("Selecione uma carta para descartar.")
+		else:
+			_show_message("Carta selecionada — clique em DESCARTAR CARTA.")
+
+func _primary_action() -> BaseButton:
+	return %Discard
+
+func _valid_selection_phases() -> Array[int]:
+	return [2]
+
+func _card_playable_hint(_card: Dictionary) -> bool:
+	return ActionAvailability.is_local_turn(public_snapshot, SessionState.local_peer_id) and int(public_snapshot.get("phase", -1)) == 2
 
 func _phase_text(phase: int) -> String:
 	return ["Distribuindo", "Compre uma carta", "Descarte ou bata", "Fim da rodada", "Partida encerrada"][clampi(phase, 0, 4)]
