@@ -135,10 +135,16 @@ func _begin_match()->void:
 			phase=SessionPhase.LOBBY
 			return
 	_controller.snapshots_ready.connect(_broadcast_snapshots);_controller.match_finished.connect(_match_finished);_controller.initialize(engine,ids,randi(),config);phase=SessionPhase.MATCH_ACTIVE
-func submit_action(action_type:String,payload:Dictionary={})->int:
-	var action_id:int=_next_action_id;_next_action_id+=1;var envelope:Dictionary=NetworkProtocol.envelope(session_id,match_id,action_id,state_version,action_type,payload)
-	if multiplayer.is_server():_process_action(1,envelope)
-	else:request_action.rpc_id(1,envelope)
+func submit_action(action_type: String, payload: Dictionary = {}) -> int:
+	var action_id: int = _next_action_id
+	_next_action_id += 1
+	var envelope: Dictionary = NetworkProtocol.envelope(session_id, match_id, action_id, state_version, action_type, payload)
+	# O host obedece ao mesmo contrato assíncrono do cliente: o chamador sempre
+	# recebe e registra o ID antes que action_answered possa ser emitido.
+	if multiplayer.is_server():
+		call_deferred("_process_action", 1, envelope)
+	else:
+		request_action.rpc_id(1, envelope)
 	return action_id
 @rpc("any_peer","call_remote","reliable") func request_action(envelope:Dictionary)->void:
 	var sender:int=multiplayer.get_remote_sender_id();if not multiplayer.is_server():return

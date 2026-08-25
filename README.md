@@ -44,8 +44,12 @@ A interface usa apenas controles, texto e símbolos do sistema; não há asset e
 
 A apresentação usa mesa de feltro verde-petróleo, painéis translúcidos, detalhes dourados e cartas desenhadas proceduralmente. Cartas tradicionais têm frente marfim, rank e naipe; cartas Uno usam cores vivas e símbolos próprios; o verso geométrico “HC” nunca revela dados. A mesa se reorganiza por `Container`, a mão possui rolagem horizontal, adversários mostram assento e até cinco miniaturas de verso com a contagem real.
 
-- **Uno:** selecione uma carta, marque **Declarar Uno** quando necessário, escolha a cor antes de um curinga e use **Jogar carta**; **Comprar** e **Passar** são contextuais.
-- **Caxeta:** use **Comprar do monte/descarte**, selecione e descarte; **Bater ao descartar** viaja na mesma ação atômica e **Bater com 10** valida a mão completa.
-- **Truco:** selecione e jogue; durante pedido, a equipe respondente usa **Aceitar**, **Correr** ou **Aumentar**. Vira, manilha, vaza, valor da mão e placar ficam no centro.
+Todas as mesas usam deliberadamente confirmação em dois passos: **primeiro clique na carta para selecioná-la; depois confirme no botão principal** (**Jogar carta** ou **Descartar carta**). A carta escolhida sobe, ganha contorno dourado e seu nome aparece no HUD. Clique nela outra vez ou pressione `Esc` para cancelar; `Enter` confirma somente quando o botão principal estiver habilitado. O contorno verde discreto é apenas uma dica de jogada legal. Durante a confirmação, novos cliques são ignorados e um timeout de oito segundos devolve os controles sem reenviar a ação.
+
+- **Uno:** no seu turno, selecione uma carta compatível com a cor, número ou símbolo e confirme em **Jogar carta**. Uma carta incompatível pode ser inspecionada, mas não confirmada. **Comprar carta** aparece na jogada normal e **Passar** após uma compra jogável. Ao confirmar um curinga, escolha vermelho, amarelo, verde ou azul na janela central; cancelar não envia nada. **Declarar Uno** só é oferecido quando a jogada deixará uma carta.
+- **Caxeta:** siga a instrução da rodada: (1) **Comprar do monte** ou **Comprar descarte**, (2) selecionar uma carta e (3) confirmar em **Descartar carta**. Não é possível descartar antes da compra. **Bater ao descartar** viaja na mesma ação atômica e **Bater com 10** valida a mão completa.
+- **Truco:** durante a vaza, selecione e confirme em **Jogar carta**. **Pedir Truco** respeita turno, valor e equipe do último aumento. Enquanto houver pedido, jogar fica bloqueado e somente a equipe respondente pode usar **Aceitar**, **Correr** ou **Aumentar**. Vira, manilha, vaza, valor da mão e placar ficam no centro.
+
+Host e cliente seguem a mesma confirmação assíncrona. Uma rejeição mostra uma explicação amigável e reabilita a mesa; perda de conexão também cancela qualquer espera. Para validar em LAN, use duas instâncias/computadores conforme `LOCAL_VALIDATION.md`.
 
 O menu inclui **Como jogar**, com abas para os três jogos e LAN. Nenhuma tela final apresenta snapshot, JSON ou dicionário interno. Consulte [`TEST_MATRIX.md`](TEST_MATRIX.md) e [`INITIAL_INVENTORY.md`](INITIAL_INVENTORY.md).
