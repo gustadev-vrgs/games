@@ -52,3 +52,14 @@ func _publish() -> void:
 			var peer_id: int = int(peer_value)
 			private_snapshots[peer_id] = rules.build_private_snapshot(state, peer_id)
 	snapshots_ready.emit(rules.build_public_snapshot(state), private_snapshots)
+
+func advance_authoritative_transition() -> bool:
+	if not rules.has_method("advance_reveal"):
+		return false
+	if not rules.advance_reveal(state, rng):
+		return false
+	_publish()
+	if rules.is_match_finished(state) and not match_end_emitted:
+		match_end_emitted = true
+		match_finished.emit(rules.build_public_snapshot(state))
+	return true

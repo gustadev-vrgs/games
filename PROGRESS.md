@@ -23,3 +23,11 @@
 - Adicionadas ajuda com abas, resultados amigáveis, inventário inicial e matriz de testes.
 - O controlador agora aplica ações em cópia profunda e só promove estado aceito, válido e com incremento unitário de versão.
 - **Limitação real:** a Godot 4.5.1 e templates não existem neste ambiente; parser, runners, renderização, multiplayer físico e exportação continuam pendentes e não são declarados aprovados.
+
+## Checkpoint — jogabilidade multiplayer das mesas
+
+- Saída confirmada e idempotente implementada em lobby, mesas e resultados, incluindo encerramento pelo host e cancelamento da partida por saída de cliente.
+- Uno possui monte central clicável, reciclagem conservativa, feedback contextual, escolha modal de cor e evento público `last_play`.
+- Truco possui progressão completa dos pedidos, modal contextual, histórico público e revelação autoritativa temporizada com token de versão.
+- Testes determinísticos de regras foram ampliados para compra/reciclagem/curinga do Uno e pedidos/revelação/histórico do Truco.
+- Godot 4.5.1 e validação LAN de duas instâncias permanecem pendentes neste ambiente quando o binário não estiver disponível.

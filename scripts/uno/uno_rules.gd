@@ -10,7 +10,7 @@ func create_initial_state(peer_ids: Array, rng: RandomNumberGenerator) -> Dictio
 	var held: Array = []; var top: Dictionary = deck.pop_back()
 	while not top.action.is_empty(): held.append(top); top = deck.pop_back()
 	deck.append_array(held); deck = DeckBuilder.shuffle(deck,rng)
-	return {"game_id":"uno","phase":Phase.PLAYER_TURN,"players":peer_ids.duplicate(),"hands":hands,"draw_pile":deck,"discard":[top],"active_color":top.color,"current_index":0,"direction":1,"drawn_uid":-1,"winner":-1,"state_version":0,"total_cards":108}
+	return {"game_id":"uno","phase":Phase.PLAYER_TURN,"players":peer_ids.duplicate(),"hands":hands,"draw_pile":deck,"discard":[top],"active_color":top.color,"current_index":0,"direction":1,"drawn_uid":-1,"winner":-1,"last_play":{},"last_draw":{},"state_version":0,"total_cards":108}
 func validate_action(state: Dictionary, actor_id: int, action: Dictionary) -> Dictionary:
 	if state.phase != Phase.PLAYER_TURN and state.phase != Phase.AFTER_DRAW_CHOICE: return ActionResult.rejected("INVALID_PHASE")
 	if state.players[state.current_index] != actor_id: return ActionResult.rejected("NOT_YOUR_TURN")
@@ -35,11 +35,18 @@ func apply_action(state: Dictionary, actor_id: int, action: Dictionary, rng: Ran
 	match action.type:
 		"DRAW_ONE":
 			var card: Dictionary = _draw(state,rng)
-			if card.is_empty(): _advance(state)
+			if card.is_empty():
+				state.last_draw = {"peer_id":actor_id,"card_uid":-1,"playable":false}
+				_advance(state)
 			else:
-				state.hands[actor_id].append(card); state.drawn_uid = card.uid
-				if is_playable(card,state.discard.back(),state.active_color): state.phase = Phase.AFTER_DRAW_CHOICE
-				else: _advance(state)
+				state.hands[actor_id].append(card)
+				state.drawn_uid = card.uid
+				var playable: bool = is_playable(card,state.discard.back(),state.active_color)
+				state.last_draw = {"peer_id":actor_id,"card_uid":card.uid,"playable":playable}
+				if playable:
+					state.phase = Phase.AFTER_DRAW_CHOICE
+				else:
+					_advance(state)
 		"PASS": _advance(state)
 		"PLAY_CARD": _play(state,actor_id,action,rng)
 	state.state_version += 1
@@ -48,7 +55,9 @@ func apply_action(state: Dictionary, actor_id: int, action: Dictionary, rng: Ran
 	return ActionResult.accepted()
 func _play(state: Dictionary, actor_id: int, action: Dictionary, rng: RandomNumberGenerator) -> void:
 	var hand: Array = state.hands[actor_id]; var index: int = _index(hand,action.card_uid); var card: Dictionary = hand.pop_at(index); state.discard.append(card)
-	state.active_color = action.get("chosen_color",card.color) if card.action in ["wild","wild_draw_four"] else card.color
+	var chosen_color: String = String(action.get("chosen_color", ""))
+	state.active_color = chosen_color if card.action in ["wild","wild_draw_four"] else card.color
+	state.last_play = {"peer_id":actor_id,"card":card.duplicate(true),"chosen_color":chosen_color,"declared_uno":bool(action.get("declared_uno",false))}
 	state.drawn_uid = -1
 	if hand.is_empty(): state.winner = actor_id; state.phase = Phase.MATCH_END; return
 	if hand.size() == 1 and not action.get("declared_uno",false): _draw_many(state,actor_id,2,rng)
@@ -85,7 +94,7 @@ func _index(cards: Array, uid: int) -> int:
 func build_public_snapshot(state: Dictionary) -> Dictionary:
 	var counts: Dictionary = {}
 	for id in state.players: counts[id] = state.hands[id].size()
-	return {"game_id":"uno","phase":state.phase,"current_player":state.players[state.current_index],"active_color":state.active_color,"direction":state.direction,"top_card":state.discard.back().duplicate(true),"card_counts":counts,"draw_count":state.draw_pile.size(),"winner":state.winner,"state_version":state.state_version}
+	return {"game_id":"uno","phase":state.phase,"current_player":state.players[state.current_index],"active_color":state.active_color,"direction":state.direction,"top_card":state.discard.back().duplicate(true),"card_counts":counts,"draw_count":state.draw_pile.size(),"can_draw":not state.draw_pile.is_empty() or state.discard.size()>1,"last_play":state.last_play.duplicate(true),"last_draw":{"peer_id":int(state.last_draw.get("peer_id",-1)),"playable":bool(state.last_draw.get("playable",false))},"winner":state.winner,"state_version":state.state_version}
 func build_private_snapshot(state: Dictionary, peer_id: int) -> Dictionary: return {"peer_id":peer_id,"hand":state.hands.get(peer_id,[]).duplicate(true),"drawn_uid":state.drawn_uid,"state_version":state.state_version}
 func validate_invariants(state: Dictionary) -> String:
 	var cards: Array[Dictionary] = []; cards.append_array(state.draw_pile); cards.append_array(state.discard)

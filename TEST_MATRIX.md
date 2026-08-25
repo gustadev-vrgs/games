@@ -13,3 +13,12 @@
 | Windows | `export_presets.cfg` | export release x86_64 com recursos embutidos | Templates/execução pendentes |
 
 Uma execução só deve ser marcada como aprovada com código de saída 0 e sem mensagens de parser, recurso ou RPC no stderr.
+
+## Regressão multiplayer — mesas (2026-08-25)
+
+| Área | Cobertura automatizada | LAN/manual pendente |
+|---|---|---|
+| Saída | Guardas idempotentes, cancelamento de timers/controlador e retorno de fase inspecionados estaticamente | Cliente sair durante cada jogo; host reiniciar e encerrar sala |
+| Uno | Compra, reciclagem sem reciclar topo, conservação, curinga inválido/válido e privacidade de `last_play` | Clique no monte, animação e cor idêntica em duas instâncias |
+| Truco | 1/3/6/9/12, limite, equipes, correr, `TRICK_REVEAL`, transição única e histórico ordenado | Conferir modal, brilho e espera de 2,5 s em duas instâncias |
+| Rede/UI | Envio diferido, timeout, duplo clique, resposta obsoleta e cenas no runner | Latência/perda real em ENet e responsividade visual |

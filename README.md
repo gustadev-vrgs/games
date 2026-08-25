@@ -53,3 +53,11 @@ Todas as mesas usam deliberadamente confirmação em dois passos: **primeiro cli
 Host e cliente seguem a mesma confirmação assíncrona. Uma rejeição mostra uma explicação amigável e reabilita a mesa; perda de conexão também cancela qualquer espera. Para validar em LAN, use duas instâncias/computadores conforme `LOCAL_VALIDATION.md`.
 
 O menu inclui **Como jogar**, com abas para os três jogos e LAN. Nenhuma tela final apresenta snapshot, JSON ou dicionário interno. Consulte [`TEST_MATRIX.md`](TEST_MATRIX.md) e [`INITIAL_INVENTORY.md`](INITIAL_INVENTORY.md).
+
+## Fluxos multiplayer concluídos
+
+A saída da sala agora exige confirmação em lobby, mesas e resultados. Clientes notificam o host antes da desconexão; uma saída durante a partida cancela o controlador e devolve os jogadores restantes ao lobby, enquanto o host pode encerrar a sessão inteira. O processamento é idempotente para não repetir a saída quando o evento de transporte chegar depois da intenção confiável.
+
+No Uno, tanto o botão contextual quanto o monte central clicável compram uma carta. O monte destaca a ausência de jogada válida, recicla o descarte preservando a carta superior e mostra a escolha de cor do curinga para todos. O snapshot público inclui `last_play`, cor ativa, capacidade do monte e apenas metadados públicos da última compra.
+
+No Truco, os pedidos seguem 1 → 3 → 6 → 9 → 12, com equipe respondente, solicitante e próximo valor explícitos no snapshot. A fase autoritativa `TRICK_REVEAL` mantém as cartas por 2,5 segundos; somente um timer do host, protegido pela versão do estado, avança a partida. O histórico público registra ordem, jogador, equipe, carta e resultado de cada vaza sem copiar mãos privadas.
