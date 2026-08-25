@@ -78,7 +78,7 @@ func _next_active_index(state: Dictionary, from: int) -> int:
 func build_public_snapshot(state: Dictionary)->Dictionary:
 	var counts: Dictionary={}
 	for id in state.players: counts[id]=state.hands[id].size()
-	return {"game_id":"caxeta","phase":state.phase,"current_player":state.players[state.current_index],"lives":state.lives.duplicate(),"eliminated":state.eliminated.duplicate(),"turn_card":state.turn_card,"wild":state.wild,"discard_top":{} if state.discard.is_empty() else state.discard.back(),"card_counts":counts,"winner":state.winner,"state_version":state.state_version}
+	return {"game_id":"caxeta","phase":state.phase,"current_player":state.players[state.current_index],"lives":state.lives.duplicate(),"eliminated":state.eliminated.duplicate(),"turn_card":state.turn_card,"wild":state.wild,"discard_top":{} if state.discard.is_empty() else state.discard.back(),"card_counts":counts,"draw_count":state.draw_pile.size(),"winner":state.winner,"state_version":state.state_version}
 func build_private_snapshot(state:Dictionary,peer_id:int)->Dictionary:return {"peer_id":peer_id,"hand":state.hands.get(peer_id,[]).duplicate(true),"state_version":state.state_version}
 func validate_invariants(state:Dictionary)->String:
 	var cards:Array[Dictionary]=[];cards.append_array(state.draw_pile);cards.append_array(state.discard);cards.append(state.turn_card)

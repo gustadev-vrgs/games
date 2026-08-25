@@ -17,7 +17,14 @@ func create_server(nickname:String,game_id:String,settings:Dictionary,port:int)-
 	_peer=ENetMultiplayerPeer.new();var error:Error=_peer.create_server(port,GameConstants.MAX_TRANSPORT_CLIENTS)
 	if error!=OK:_peer=null;return "SERVER_CREATE_FAILED"
 	multiplayer.multiplayer_peer=_peer;session_id="%s-%s"%[Time.get_unix_time_from_system(),randi()];phase=SessionPhase.LOBBY;config=settings.duplicate(true);config.game_id=game_id;config.port=port
-	players[1]={"peer_id":1,"display_name":name,"seat":0,"ready":true,"connected":true};_sync_lobby();return "OK"
+	players[1]={"peer_id":1,"display_name":name,"seat":0,"ready":true,"connected":true}
+	SessionState.session_id=session_id
+	SessionState.game_id=game_id
+	SessionState.local_peer_id=1
+	SessionState.is_host=true
+	SessionState.approved_config=config.duplicate(true)
+	_sync_lobby()
+	return "OK"
 func create_client(nickname:String,address:String,port:int)->String:
 	clean_session();var name:String=GameConstants.sanitize_nickname(nickname)
 	if name.is_empty() or address.strip_edges().is_empty() or address.length()>255 or not GameConstants.valid_port(port):return "INVALID_CONFIG"

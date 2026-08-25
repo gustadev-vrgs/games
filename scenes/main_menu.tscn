@@ -43,6 +43,10 @@ text = "Criar sala"
 unique_name_in_owner = true
 layout_mode = 2
 text = "Entrar em sala"
+[node name="Help" type="Button" parent="Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Como jogar"
 [node name="Quit" type="Button" parent="Margin/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -53,3 +57,8 @@ unique_name_in_owner = true
 layout_mode = 2
 autowrap_mode = 2
 horizontal_alignment = 1
+[node name="Version" type="Label" parent="Margin/VBox"]
+layout_mode = 2
+text = "versão 1.0 · Godot 4.5.1"
+horizontal_alignment = 1
+modulate = Color(1, 1, 1, 0.55)
