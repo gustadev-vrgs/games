@@ -35,8 +35,15 @@ func _ready() -> void:
 	_connect_once(NetworkManager.action_answered, _on_action_answered)
 	_connect_once(NetworkManager.session_interrupted, _on_session_interrupted)
 	_connect_once(%Leave.pressed, _leave)
-	%Leave.text = "← Sair para o menu"
-	%Leave.custom_minimum_size = Vector2(150.0, 44.0)
+	%Leave.text = "← SAIR"
+	%Leave.custom_minimum_size = Vector2(112.0, 42.0)
+	HubTheme.style_exit(%Leave)
+	%Title.add_theme_color_override("font_color", HubTheme.GOLD)
+	%Title.add_theme_color_override("font_outline_color", Color("382A16"))
+	%Title.add_theme_constant_override("outline_size", 5)
+	HubTheme.style_pill(%Connection, HubTheme.SECONDARY)
+	HubTheme.style_pill(%Phase, HubTheme.INFO)
+	HubTheme.style_pill(%Turn, HubTheme.SUCCESS)
 	_create_leave_dialog()
 	_pending_timer = Timer.new()
 	_pending_timer.one_shot = true
@@ -97,9 +104,9 @@ func _on_private_snapshot(snapshot: Dictionary) -> void:
 
 func _render_header() -> void:
 	var current_player: int = int(public_snapshot.get("current_player", -1))
-	%Turn.text = "Sua vez" if current_player == SessionState.local_peer_id else "Vez de %s" % _player_name(current_player)
-	%Connection.text = "Modo treino local — você controla: %s" % _player_name(SessionState.local_peer_id) if SessionState.is_training else "● LAN conectada"
-	%Phase.text = _phase_text(int(public_snapshot.get("phase", 0)))
+	%Turn.text = "SUA VEZ" if current_player == SessionState.local_peer_id else "VEZ: %s" % _player_name(current_player).to_upper()
+	%Connection.text = "TREINO" if SessionState.is_training else "LAN"
+	%Phase.text = ("JOGADOR %d" % (SessionState.local_peer_id + 1)) if SessionState.is_training else _phase_text(int(public_snapshot.get("phase", 0))).to_upper()
 
 func _render_opponents() -> void:
 	_clear_children(opponents)

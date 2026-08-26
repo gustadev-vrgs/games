@@ -78,7 +78,7 @@ func _apply_display_size() -> void:
 		DisplayMode.OPPONENT_BACK:
 			custom_minimum_size = Vector2(38.0, 54.0)
 		DisplayMode.HISTORY_MINI:
-			custom_minimum_size = Vector2(44.0, 64.0)
+			custom_minimum_size = Vector2(50.0, 70.0)
 	pivot_offset = Vector2(custom_minimum_size.x * 0.5, custom_minimum_size.y - 8.0)
 
 func set_state(new_selected: bool, new_interactable: bool, new_playable_hint: bool, new_pending: bool) -> void:
@@ -105,7 +105,12 @@ func set_winning_card(value: bool) -> void:
 	_refresh()
 
 func _draw() -> void:
-	var bounds: Rect2 = Rect2(Vector2(4.0, 16.0 - _visual_lift), size - Vector2(8.0, 22.0))
+	# Always fit a 5:7 rectangle inside the allocated control. Containers may grow,
+	# but the card itself must never inherit that distortion.
+	var available: Vector2 = Vector2(maxf(1.0, size.x - 8.0), maxf(1.0, size.y - 8.0))
+	var card_size: Vector2 = Vector2(minf(available.x, available.y * 5.0 / 7.0), 0.0)
+	card_size.y = card_size.x * 7.0 / 5.0
+	var bounds: Rect2 = Rect2(Vector2((size.x - card_size.x) * 0.5, (size.y - card_size.y) * 0.5 - _visual_lift), card_size)
 	var shadow: Rect2 = Rect2(bounds.position + Vector2(3.0, 4.0), bounds.size)
 	draw_style_box(_box(Color(0.0, 0.0, 0.0, 0.35), Color.TRANSPARENT, 12), shadow)
 	var background: Color = _background_color()
@@ -129,7 +134,7 @@ func _draw() -> void:
 		_draw_standard(bounds)
 	if pending:
 		draw_style_box(_box(Color(0.02, 0.04, 0.05, 0.58), Color.TRANSPARENT, 12), bounds)
-		_draw_centered("…", 30, Color.WHITE, bounds)
+		_draw_centered("…", 30, HubTheme.TEXT, bounds)
 
 func _draw_uno(bounds: Rect2) -> void:
 	var value: String = _uno_value()
@@ -142,8 +147,8 @@ func _draw_uno(bounds: Rect2) -> void:
 		draw_circle(Vector2.ZERO, minf(bounds.size.x, bounds.size.y) * 0.39, Color(1.0, 1.0, 1.0, 0.88))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	_draw_centered(value, 29, Color("172229"), bounds)
-	_draw_text(value, bounds.position + Vector2(9.0, 24.0), 16, Color.WHITE)
-	_draw_text(value, bounds.end - Vector2(10.0 + value.length() * 7.0, 9.0), 16, Color.WHITE)
+	_draw_text(value, bounds.position + Vector2(9.0, 24.0), 16, HubTheme.TEXT)
+	_draw_text(value, bounds.end - Vector2(10.0 + value.length() * 7.0, 9.0), 16, HubTheme.TEXT)
 
 func _draw_standard(bounds: Rect2) -> void:
 	var rank: String = CardFormatter.caxeta_face_rank(String(card_data.get("rank", "?")))
