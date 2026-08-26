@@ -1,59 +1,93 @@
 [gd_scene load_steps=2 format=3]
-
 [ext_resource path="res://scripts/ui/host_setup.gd" type="Script" id="1"]
-
 [node name="HostSetup" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 script = ExtResource("1")
-screen_title = "Criar sala"
+screen_title = "CRIAR SALA"
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.027, 0.18, 0.18, 1)
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 32.0
-offset_top = 24.0
-offset_right = -32.0
-offset_bottom = -24.0
-[node name="VBox" type="VBoxContainer" parent="Margin"]
+offset_left = 24.0
+offset_top = 16.0
+offset_right = -24.0
+offset_bottom = -16.0
+[node name="Center" type="CenterContainer" parent="Margin"]
 layout_mode = 2
-theme_override_constants/separation = 12
-[node name="Title" type="Label" parent="Margin/VBox"]
+[node name="Panel" type="PanelContainer" parent="Margin/Center"]
+custom_minimum_size = Vector2(700, 0)
+layout_mode = 2
+[node name="Content" type="VBoxContainer" parent="Margin/Center/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+[node name="Header" type="HBoxContainer" parent="Margin/Center/Panel/Content"]
+layout_mode = 2
+[node name="Back" type="Button" parent="Margin/Center/Panel/Content/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 38)
+layout_mode = 2
+text = "← Voltar"
+[node name="Title" type="Label" parent="Margin/Center/Panel/Content/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 32
-text = "Hub de Cartas"
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 30
+text = "CRIAR SALA"
 horizontal_alignment = 1
-[node name="Game" type="OptionButton" parent="Margin/VBox"]
+[node name="Spacer" type="Control" parent="Margin/Center/Panel/Content/Header"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+[node name="GameSection" type="PanelContainer" parent="Margin/Center/Panel/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+[node name="Rows" type="VBoxContainer" parent="Margin/Center/Panel/Content/GameSection"]
+layout_mode = 2
+[node name="Label" type="Label" parent="Margin/Center/Panel/Content/GameSection/Rows"]
+layout_mode = 2
+text = "JOGO SELECIONADO"
+[node name="Game" type="OptionButton" parent="Margin/Center/Panel/Content/GameSection/Rows"]
 unique_name_in_owner = true
 layout_mode = 2
 item_count = 3
-popup/item_0/text = "Uno"
+popup/item_0/text = "🔵 Uno"
 popup/item_0/id = 0
-popup/item_1/text = "Caxeta"
+popup/item_1/text = "🟢 Caxeta"
 popup/item_1/id = 1
-popup/item_2/text = "Truco Paulista"
+popup/item_2/text = "🟣 Truco Paulista"
 popup/item_2/id = 2
-[node name="UnoMaximumLabel" type="Label" parent="Margin/VBox"]
+[node name="SettingsSection" type="PanelContainer" parent="Margin/Center/Panel/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+[node name="Rows" type="VBoxContainer" parent="Margin/Center/Panel/Content/SettingsSection"]
+layout_mode = 2
+[node name="SectionTitle" type="Label" parent="Margin/Center/Panel/Content/SettingsSection/Rows"]
+layout_mode = 2
+text = "CONFIGURAÇÕES DA PARTIDA"
+[node name="UnoMaximumLabel" type="Label" parent="Margin/Center/Panel/Content/SettingsSection/Rows"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Máximo de jogadores (2 a 8)"
-[node name="UnoMaximum" type="SpinBox" parent="Margin/VBox"]
+[node name="UnoMaximum" type="SpinBox" parent="Margin/Center/Panel/Content/SettingsSection/Rows"]
 unique_name_in_owner = true
 layout_mode = 2
 min_value = 2.0
 max_value = 8.0
 value = 8.0
-[node name="TrucoModeLabel" type="Label" parent="Margin/VBox"]
+[node name="TrucoModeLabel" type="Label" parent="Margin/Center/Panel/Content/SettingsSection/Rows"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Modo"
-[node name="TrucoMode" type="OptionButton" parent="Margin/VBox"]
+text = "Formato do Truco"
+[node name="TrucoMode" type="OptionButton" parent="Margin/Center/Panel/Content/SettingsSection/Rows"]
 unique_name_in_owner = true
 layout_mode = 2
 item_count = 2
@@ -61,30 +95,39 @@ popup/item_0/text = "Dupla contra dupla"
 popup/item_0/id = 0
 popup/item_1/text = "1 contra 1"
 popup/item_1/id = 1
-[node name="Lives" type="SpinBox" parent="Margin/VBox"]
+[node name="LivesLabel" type="Label" parent="Margin/Center/Panel/Content/SettingsSection/Rows"]
+layout_mode = 2
+text = "Vidas da Caxeta"
+[node name="Lives" type="SpinBox" parent="Margin/Center/Panel/Content/SettingsSection/Rows"]
 unique_name_in_owner = true
 layout_mode = 2
 min_value = 7.0
 max_value = 10.0
 step = 3.0
 value = 7.0
-[node name="Port" type="SpinBox" parent="Margin/VBox"]
+[node name="ConnectionSection" type="PanelContainer" parent="Margin/Center/Panel/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+[node name="Rows" type="VBoxContainer" parent="Margin/Center/Panel/Content/ConnectionSection"]
+layout_mode = 2
+[node name="PortLabel" type="Label" parent="Margin/Center/Panel/Content/ConnectionSection/Rows"]
+layout_mode = 2
+text = "PORTA DA REDE"
+[node name="Port" type="SpinBox" parent="Margin/Center/Panel/Content/ConnectionSection/Rows"]
 unique_name_in_owner = true
 layout_mode = 2
 min_value = 1024.0
 max_value = 65535.0
 value = 7000.0
-[node name="Create" type="Button" parent="Margin/VBox"]
+[node name="Create" type="Button" parent="Margin/Center/Panel/Content"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(230, 46)
 layout_mode = 2
-text = "Criar"
-[node name="Back" type="Button" parent="Margin/VBox"]
+size_flags_horizontal = 4
+text = "CRIAR SALA"
+[node name="Status" type="Label" parent="Margin/Center/Panel/Content"]
 unique_name_in_owner = true
-layout_mode = 2
-text = "Voltar"
-
-[node name="Status" type="Label" parent="Margin/VBox"]
-unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
 autowrap_mode = 2
 horizontal_alignment = 1

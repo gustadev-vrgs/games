@@ -6,10 +6,14 @@ func _ready() -> void:
 	%Back.pressed.connect(func() -> void: SceneRouter.request_transition("menu"))
 	%Game.item_selected.connect(_game_changed)
 	_game_changed(%Game.selected)
+	HubTheme.style_action(%Create, HubTheme.BLUE)
+	HubTheme.style_card(%GameSection, HubTheme.INFO); HubTheme.style_card(%SettingsSection, HubTheme.SECONDARY); HubTheme.style_card(%ConnectionSection, HubTheme.GOLD)
 
 func _game_changed(index: int) -> void:
 	%UnoMaximum.visible = index == 0
 	%UnoMaximumLabel.visible = index == 0
+	%Lives.visible = index == 1
+	%LivesLabel.visible = index == 1
 	%TrucoMode.visible = index == 2
 	%TrucoModeLabel.visible = index == 2
 

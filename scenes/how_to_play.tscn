@@ -1,54 +1,320 @@
 [gd_scene load_steps=2 format=3]
-
 [ext_resource path="res://scripts/ui/how_to_play.gd" type="Script" id="1"]
-
 [node name="HowToPlay" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource("1")
-screen_title = "Como jogar"
+screen_title = "COMO JOGAR"
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.027, 0.18, 0.18, 1)
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 40.0
-offset_top = 24.0
-offset_right = -40.0
-offset_bottom = -24.0
-[node name="VBox" type="VBoxContainer" parent="Margin"]
+offset_left = 24.0
+offset_top = 16.0
+offset_right = -24.0
+offset_bottom = -16.0
+[node name="Panel" type="PanelContainer" parent="Margin"]
 layout_mode = 2
-[node name="Title" type="Label" parent="Margin/VBox"]
+[node name="Layout" type="VBoxContainer" parent="Margin/Panel"]
+layout_mode = 2
+[node name="Header" type="HBoxContainer" parent="Margin/Panel/Layout"]
+layout_mode = 2
+[node name="Back" type="Button" parent="Margin/Panel/Layout/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 40)
+layout_mode = 2
+text = "← Voltar"
+[node name="Title" type="Label" parent="Margin/Panel/Layout/Header"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 30
-text = "Como jogar"
+text = "COMO JOGAR"
 horizontal_alignment = 1
-[node name="Tabs" type="TabContainer" parent="Margin/VBox"]
+[node name="Spacer" type="Control" parent="Margin/Panel/Layout/Header"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+[node name="Tabs" type="TabContainer" parent="Margin/Panel/Layout"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
-[node name="Uno" type="Label" parent="Margin/VBox/Tabs"]
+theme_override_font_sizes/font_size = 18
+[node name="Uno" type="ScrollContainer" parent="Margin/Panel/Layout/Tabs"]
 layout_mode = 2
-text = "Combine cor, número ou símbolo. Você também pode selecionar várias cartas numéricas iguais: a primeira deve combinar com o descarte, as seguintes podem ter outras cores e a última fica no topo. A combinação é uma única jogada. Curingas escolhem a cor e não entram em combinações. O +4 só pode ser usado sem carta da cor ativa. Após comprar, jogue apenas a carta comprada, sozinha, ou passe. Declare Uno ao ficar com uma carta."
+metadata/_tab_name = "🔵 Uno"
+[node name="Cards" type="VBoxContainer" parent="Margin/Panel/Layout/Tabs/Uno"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+[node name="0Card" type="PanelContainer" parent="Margin/Panel/Layout/Tabs/Uno/Cards"]
+layout_mode = 2
+[node name="Text" type="VBoxContainer" parent="Margin/Panel/Layout/Tabs/Uno/Cards/0Card"]
+layout_mode = 2
+[node name="Heading" type="Label" parent="Margin/Panel/Layout/Tabs/Uno/Cards/0Card/Text"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.957, 0.788, 0.365, 1)
+theme_override_font_sizes/font_size = 20
+text = "Objetivo"
+[node name="Body" type="Label" parent="Margin/Panel/Layout/Tabs/Uno/Cards/0Card/Text"]
+layout_mode = 2
+text = "Seja o primeiro a ficar sem cartas. Combine a carta jogada com a cor, o número ou o símbolo do descarte."
 autowrap_mode = 2
-[node name="Caxeta" type="Label" parent="Margin/VBox/Tabs"]
+[node name="1Card" type="PanelContainer" parent="Margin/Panel/Layout/Tabs/Uno/Cards"]
 layout_mode = 2
-text = "Compre do monte ou descarte e depois descarte uma carta. Forme trincas de naipes diferentes ou sequências do mesmo naipe. A vira define o curinga. Bata com nove cartas ao descartar, ou com dez se houver sequência de quatro ou mais."
+[node name="Text" type="VBoxContainer" parent="Margin/Panel/Layout/Tabs/Uno/Cards/1Card"]
+layout_mode = 2
+[node name="Heading" type="Label" parent="Margin/Panel/Layout/Tabs/Uno/Cards/1Card/Text"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.957, 0.788, 0.365, 1)
+theme_override_font_sizes/font_size = 20
+text = "Preparação"
+[node name="Body" type="Label" parent="Margin/Panel/Layout/Tabs/Uno/Cards/1Card/Text"]
+layout_mode = 2
+text = "Cada jogador recebe sete cartas. A primeira carta do monte inicia o descarte e define a cor ativa."
 autowrap_mode = 2
-[node name="Truco Paulista" type="Label" parent="Margin/VBox/Tabs"]
+[node name="2Card" type="PanelContainer" parent="Margin/Panel/Layout/Tabs/Uno/Cards"]
 layout_mode = 2
-text = "Ganhe duas de três turnos. A carta após a vira define a manilha; entre manilhas, Paus, Copas, Espadas e Ouros. Peça Truco e aumente a mão para 3, 6, 9 ou 12 pontos. Em duplas, seu parceiro fica no assento oposto."
+[node name="Text" type="VBoxContainer" parent="Margin/Panel/Layout/Tabs/Uno/Cards/2Card"]
+layout_mode = 2
+[node name="Heading" type="Label" parent="Margin/Panel/Layout/Tabs/Uno/Cards/2Card/Text"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.957, 0.788, 0.365, 1)
+theme_override_font_sizes/font_size = 20
+text = "O que fazer no turno"
+[node name="Body" type="Label" parent="Margin/Panel/Layout/Tabs/Uno/Cards/2Card/Text"]
+layout_mode = 2
+text = "Jogue uma carta compatível. Você pode selecionar e jogar várias cartas numéricas iguais na mesma jogada. A primeira precisa combinar com o descarte, e a última selecionada define a nova cor ativa."
 autowrap_mode = 2
-[node name="Rede LAN" type="Label" parent="Margin/VBox/Tabs"]
+[node name="3Card" type="PanelContainer" parent="Margin/Panel/Layout/Tabs/Uno/Cards"]
 layout_mode = 2
-text = "O host cria a sala e também joga. Os demais usam o IPv4 LAN e a mesma porta UDP. Permita o jogo no Firewall, use a mesma build e confirme que todos estão na mesma rede sem isolamento de clientes."
+[node name="Text" type="VBoxContainer" parent="Margin/Panel/Layout/Tabs/Uno/Cards/3Card"]
+layout_mode = 2
+[node name="Heading" type="Label" parent="Margin/Panel/Layout/Tabs/Uno/Cards/3Card/Text"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.957, 0.788, 0.365, 1)
+theme_override_font_sizes/font_size = 20
+text = "Ações especiais"
+[node name="Body" type="Label" parent="Margin/Panel/Layout/Tabs/Uno/Cards/3Card/Text"]
+layout_mode = 2
+text = "Bloqueio pula o próximo jogador; Inverter muda o sentido; +2 e +4 fazem o próximo comprar. Curingas permitem escolher a cor."
 autowrap_mode = 2
-[node name="Back" type="Button" parent="Margin/VBox"]
-unique_name_in_owner = true
+[node name="4Card" type="PanelContainer" parent="Margin/Panel/Layout/Tabs/Uno/Cards"]
 layout_mode = 2
-text = "Voltar"
-[node name="Status" type="Label" parent="Margin/VBox"]
+[node name="Text" type="VBoxContainer" parent="Margin/Panel/Layout/Tabs/Uno/Cards/4Card"]
+layout_mode = 2
+[node name="Heading" type="Label" parent="Margin/Panel/Layout/Tabs/Uno/Cards/4Card/Text"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.957, 0.788, 0.365, 1)
+theme_override_font_sizes/font_size = 20
+text = "Como vencer"
+[node name="Body" type="Label" parent="Margin/Panel/Layout/Tabs/Uno/Cards/4Card/Text"]
+layout_mode = 2
+text = "Declare Uno ao ficar com uma carta. A rodada termina quando um jogador descarta sua última carta."
+autowrap_mode = 2
+[node name="Caxeta" type="ScrollContainer" parent="Margin/Panel/Layout/Tabs"]
+layout_mode = 2
+metadata/_tab_name = "🟢 Caxeta"
+[node name="Cards" type="VBoxContainer" parent="Margin/Panel/Layout/Tabs/Caxeta"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+[node name="0Card" type="PanelContainer" parent="Margin/Panel/Layout/Tabs/Caxeta/Cards"]
+layout_mode = 2
+[node name="Text" type="VBoxContainer" parent="Margin/Panel/Layout/Tabs/Caxeta/Cards/0Card"]
+layout_mode = 2
+[node name="Heading" type="Label" parent="Margin/Panel/Layout/Tabs/Caxeta/Cards/0Card/Text"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.957, 0.788, 0.365, 1)
+theme_override_font_sizes/font_size = 20
+text = "Objetivo"
+[node name="Body" type="Label" parent="Margin/Panel/Layout/Tabs/Caxeta/Cards/0Card/Text"]
+layout_mode = 2
+text = "Organize a mão em trincas e sequências válidas para bater antes dos adversários."
+autowrap_mode = 2
+[node name="1Card" type="PanelContainer" parent="Margin/Panel/Layout/Tabs/Caxeta/Cards"]
+layout_mode = 2
+[node name="Text" type="VBoxContainer" parent="Margin/Panel/Layout/Tabs/Caxeta/Cards/1Card"]
+layout_mode = 2
+[node name="Heading" type="Label" parent="Margin/Panel/Layout/Tabs/Caxeta/Cards/1Card/Text"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.957, 0.788, 0.365, 1)
+theme_override_font_sizes/font_size = 20
+text = "Preparação"
+[node name="Body" type="Label" parent="Margin/Panel/Layout/Tabs/Caxeta/Cards/1Card/Text"]
+layout_mode = 2
+text = "Cada jogador recebe cartas, uma vira define o curinga e o restante forma o monte de compra."
+autowrap_mode = 2
+[node name="2Card" type="PanelContainer" parent="Margin/Panel/Layout/Tabs/Caxeta/Cards"]
+layout_mode = 2
+[node name="Text" type="VBoxContainer" parent="Margin/Panel/Layout/Tabs/Caxeta/Cards/2Card"]
+layout_mode = 2
+[node name="Heading" type="Label" parent="Margin/Panel/Layout/Tabs/Caxeta/Cards/2Card/Text"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.957, 0.788, 0.365, 1)
+theme_override_font_sizes/font_size = 20
+text = "O que fazer no turno"
+[node name="Body" type="Label" parent="Margin/Panel/Layout/Tabs/Caxeta/Cards/2Card/Text"]
+layout_mode = 2
+text = "Compre uma carta do monte ou do descarte e finalize descartando uma carta."
+autowrap_mode = 2
+[node name="3Card" type="PanelContainer" parent="Margin/Panel/Layout/Tabs/Caxeta/Cards"]
+layout_mode = 2
+[node name="Text" type="VBoxContainer" parent="Margin/Panel/Layout/Tabs/Caxeta/Cards/3Card"]
+layout_mode = 2
+[node name="Heading" type="Label" parent="Margin/Panel/Layout/Tabs/Caxeta/Cards/3Card/Text"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.957, 0.788, 0.365, 1)
+theme_override_font_sizes/font_size = 20
+text = "Ações especiais"
+[node name="Body" type="Label" parent="Margin/Panel/Layout/Tabs/Caxeta/Cards/3Card/Text"]
+layout_mode = 2
+text = "Forme trincas com o mesmo valor e naipes diferentes, ou sequências do mesmo naipe. Use o curinga para completar jogos."
+autowrap_mode = 2
+[node name="4Card" type="PanelContainer" parent="Margin/Panel/Layout/Tabs/Caxeta/Cards"]
+layout_mode = 2
+[node name="Text" type="VBoxContainer" parent="Margin/Panel/Layout/Tabs/Caxeta/Cards/4Card"]
+layout_mode = 2
+[node name="Heading" type="Label" parent="Margin/Panel/Layout/Tabs/Caxeta/Cards/4Card/Text"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.957, 0.788, 0.365, 1)
+theme_override_font_sizes/font_size = 20
+text = "Como vencer"
+[node name="Body" type="Label" parent="Margin/Panel/Layout/Tabs/Caxeta/Cards/4Card/Text"]
+layout_mode = 2
+text = "Bata com nove cartas organizadas ao descartar, ou com dez quando houver uma sequência de quatro ou mais."
+autowrap_mode = 2
+[node name="Truco Paulista" type="ScrollContainer" parent="Margin/Panel/Layout/Tabs"]
+layout_mode = 2
+metadata/_tab_name = "🟣 Truco Paulista"
+[node name="Cards" type="VBoxContainer" parent="Margin/Panel/Layout/Tabs/Truco Paulista"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+[node name="0Card" type="PanelContainer" parent="Margin/Panel/Layout/Tabs/Truco Paulista/Cards"]
+layout_mode = 2
+[node name="Text" type="VBoxContainer" parent="Margin/Panel/Layout/Tabs/Truco Paulista/Cards/0Card"]
+layout_mode = 2
+[node name="Heading" type="Label" parent="Margin/Panel/Layout/Tabs/Truco Paulista/Cards/0Card/Text"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.957, 0.788, 0.365, 1)
+theme_override_font_sizes/font_size = 20
+text = "Objetivo"
+[node name="Body" type="Label" parent="Margin/Panel/Layout/Tabs/Truco Paulista/Cards/0Card/Text"]
+layout_mode = 2
+text = "Vença mãos até sua equipe alcançar 12 pontos. Cada mão tem até três vazas."
+autowrap_mode = 2
+[node name="1Card" type="PanelContainer" parent="Margin/Panel/Layout/Tabs/Truco Paulista/Cards"]
+layout_mode = 2
+[node name="Text" type="VBoxContainer" parent="Margin/Panel/Layout/Tabs/Truco Paulista/Cards/1Card"]
+layout_mode = 2
+[node name="Heading" type="Label" parent="Margin/Panel/Layout/Tabs/Truco Paulista/Cards/1Card/Text"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.957, 0.788, 0.365, 1)
+theme_override_font_sizes/font_size = 20
+text = "Preparação"
+[node name="Body" type="Label" parent="Margin/Panel/Layout/Tabs/Truco Paulista/Cards/1Card/Text"]
+layout_mode = 2
+text = "Cada jogador recebe três cartas. A carta virada determina a manilha da mão."
+autowrap_mode = 2
+[node name="2Card" type="PanelContainer" parent="Margin/Panel/Layout/Tabs/Truco Paulista/Cards"]
+layout_mode = 2
+[node name="Text" type="VBoxContainer" parent="Margin/Panel/Layout/Tabs/Truco Paulista/Cards/2Card"]
+layout_mode = 2
+[node name="Heading" type="Label" parent="Margin/Panel/Layout/Tabs/Truco Paulista/Cards/2Card/Text"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.957, 0.788, 0.365, 1)
+theme_override_font_sizes/font_size = 20
+text = "O que fazer no turno"
+[node name="Body" type="Label" parent="Margin/Panel/Layout/Tabs/Truco Paulista/Cards/2Card/Text"]
+layout_mode = 2
+text = "Jogue uma carta quando chegar sua vez. A carta mais forte vence a vaza; duas vazas vencem a mão."
+autowrap_mode = 2
+[node name="3Card" type="PanelContainer" parent="Margin/Panel/Layout/Tabs/Truco Paulista/Cards"]
+layout_mode = 2
+[node name="Text" type="VBoxContainer" parent="Margin/Panel/Layout/Tabs/Truco Paulista/Cards/3Card"]
+layout_mode = 2
+[node name="Heading" type="Label" parent="Margin/Panel/Layout/Tabs/Truco Paulista/Cards/3Card/Text"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.957, 0.788, 0.365, 1)
+theme_override_font_sizes/font_size = 20
+text = "Ações especiais"
+[node name="Body" type="Label" parent="Margin/Panel/Layout/Tabs/Truco Paulista/Cards/3Card/Text"]
+layout_mode = 2
+text = "Peça Truco para elevar a mão a 3 pontos. Os adversários podem aceitar, correr ou aumentar para 6, 9 e 12."
+autowrap_mode = 2
+[node name="4Card" type="PanelContainer" parent="Margin/Panel/Layout/Tabs/Truco Paulista/Cards"]
+layout_mode = 2
+[node name="Text" type="VBoxContainer" parent="Margin/Panel/Layout/Tabs/Truco Paulista/Cards/4Card"]
+layout_mode = 2
+[node name="Heading" type="Label" parent="Margin/Panel/Layout/Tabs/Truco Paulista/Cards/4Card/Text"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.957, 0.788, 0.365, 1)
+theme_override_font_sizes/font_size = 20
+text = "Como vencer"
+[node name="Body" type="Label" parent="Margin/Panel/Layout/Tabs/Truco Paulista/Cards/4Card/Text"]
+layout_mode = 2
+text = "A primeira equipe a chegar a 12 pontos vence. Em duplas, parceiros ocupam assentos opostos."
+autowrap_mode = 2
+[node name="Rede LAN" type="ScrollContainer" parent="Margin/Panel/Layout/Tabs"]
+layout_mode = 2
+metadata/_tab_name = "🟡 Rede LAN"
+[node name="Cards" type="VBoxContainer" parent="Margin/Panel/Layout/Tabs/Rede LAN"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+[node name="0Card" type="PanelContainer" parent="Margin/Panel/Layout/Tabs/Rede LAN/Cards"]
+layout_mode = 2
+[node name="Text" type="VBoxContainer" parent="Margin/Panel/Layout/Tabs/Rede LAN/Cards/0Card"]
+layout_mode = 2
+[node name="Heading" type="Label" parent="Margin/Panel/Layout/Tabs/Rede LAN/Cards/0Card/Text"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.957, 0.788, 0.365, 1)
+theme_override_font_sizes/font_size = 20
+text = "Antes de começar"
+[node name="Body" type="Label" parent="Margin/Panel/Layout/Tabs/Rede LAN/Cards/0Card/Text"]
+layout_mode = 2
+text = "Todos precisam usar a mesma versão do jogo e permitir a conexão no firewall."
+autowrap_mode = 2
+[node name="1Card" type="PanelContainer" parent="Margin/Panel/Layout/Tabs/Rede LAN/Cards"]
+layout_mode = 2
+[node name="Text" type="VBoxContainer" parent="Margin/Panel/Layout/Tabs/Rede LAN/Cards/1Card"]
+layout_mode = 2
+[node name="Heading" type="Label" parent="Margin/Panel/Layout/Tabs/Rede LAN/Cards/1Card/Text"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.957, 0.788, 0.365, 1)
+theme_override_font_sizes/font_size = 20
+text = "Passo a passo"
+[node name="Body" type="Label" parent="Margin/Panel/Layout/Tabs/Rede LAN/Cards/1Card/Text"]
+layout_mode = 2
+text = "1. Conecte os computadores à mesma rede.
+2. O host cria a sala.
+3. O host informa IP e porta.
+4. Os demais entram usando os mesmos dados.
+5. Todos confirmam que estão prontos.
+6. O host inicia a partida."
+autowrap_mode = 2
+[node name="2Card" type="PanelContainer" parent="Margin/Panel/Layout/Tabs/Rede LAN/Cards"]
+layout_mode = 2
+[node name="Text" type="VBoxContainer" parent="Margin/Panel/Layout/Tabs/Rede LAN/Cards/2Card"]
+layout_mode = 2
+[node name="Heading" type="Label" parent="Margin/Panel/Layout/Tabs/Rede LAN/Cards/2Card/Text"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.957, 0.788, 0.365, 1)
+theme_override_font_sizes/font_size = 20
+text = "Dica de conexão"
+[node name="Body" type="Label" parent="Margin/Panel/Layout/Tabs/Rede LAN/Cards/2Card/Text"]
+layout_mode = 2
+text = "Use o IPv4 local do computador host e a mesma porta em todos os computadores. Redes com isolamento de clientes podem impedir a conexão."
+autowrap_mode = 2
+[node name="Status" type="Label" parent="Margin/Panel/Layout"]
 unique_name_in_owner = true
 layout_mode = 2
