@@ -41,8 +41,7 @@ var _motion_tween: Tween
 var _card_texture: Texture2D
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(88.0, 126.0)
-	pivot_offset = Vector2(44.0, 118.0)
+	_apply_display_size()
 	focus_mode = Control.FOCUS_ALL
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	flat = true
@@ -59,16 +58,28 @@ func configure(card: Dictionary, up: bool = true, mode: DisplayMode = DisplayMod
 	card_uid = int(card_data.get("uid", -1))
 	face_up = up
 	display_mode = mode
+	_apply_display_size()
 	if String(card_data.get("game_id", "")) == "truco":
 		_card_texture = TrucoSpanishCardTextures.load_face(String(card_data.get("rank", "")), String(card_data.get("suit", ""))) if face_up else TrucoSpanishCardTextures.load_back()
 	else:
 		_card_texture = null
 	if display_mode == DisplayMode.HISTORY_MINI:
-		custom_minimum_size = Vector2(44.0, 64.0)
 		focus_mode = Control.FOCUS_NONE
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tooltip_text = _tooltip()
 	_refresh()
+
+func _apply_display_size() -> void:
+	match display_mode:
+		DisplayMode.HAND:
+			custom_minimum_size = Vector2(88.0, 126.0)
+		DisplayMode.TABLE, DisplayMode.SPANISH_DECK, DisplayMode.FACE_DOWN_PLAY:
+			custom_minimum_size = Vector2(76.0, 108.0)
+		DisplayMode.OPPONENT_BACK:
+			custom_minimum_size = Vector2(38.0, 54.0)
+		DisplayMode.HISTORY_MINI:
+			custom_minimum_size = Vector2(44.0, 64.0)
+	pivot_offset = Vector2(custom_minimum_size.x * 0.5, custom_minimum_size.y - 8.0)
 
 func set_state(new_selected: bool, new_interactable: bool, new_playable_hint: bool, new_pending: bool) -> void:
 	var animate: bool = selected != new_selected

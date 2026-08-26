@@ -133,7 +133,20 @@ func _update_actions() -> void:
 		var target: int = int(public_snapshot.get("target_value", 0))
 		%RequestText.text = "%s chamou %s!\nA mão passará a valer %d pontos.\n%s" % [_player_name(int(public_snapshot.get("requesting_peer", -1))), String(VALUE_NAMES.get(target, "TRUCO")), target, "Sua equipe deve responder." if responding else "Aguardando resposta adversária…"]
 	elif phase == PHASE_REVEAL:
-		_show_message("Conferindo o resultado do turno…")
+		_show_message("Conferindo o resultado do turno.")
+	_update_turn_message(phase, waiting, responding, local_turn)
+
+func _update_turn_message(phase: int, waiting: bool, responding: bool, local_turn: bool) -> void:
+	if phase == PHASE_REVEAL:
+		_show_message("Conferindo o resultado do turno.")
+	elif waiting and responding:
+		_show_message("Escolha como responder ao pedido.")
+	elif waiting:
+		_show_message("Vez de %s." % _player_name(int(public_snapshot.get("current_player", -1))))
+	elif phase == PHASE_PLAYING and local_turn:
+		_show_message("Sua vez — selecione uma carta.")
+	elif phase == PHASE_PLAYING:
+		_show_message("Vez de %s." % _player_name(int(public_snapshot.get("current_player", -1))))
 
 func _update_responder_selector(waiting: bool) -> void:
 	%ResponderRow.visible = SessionState.is_training and waiting

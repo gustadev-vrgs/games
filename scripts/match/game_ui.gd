@@ -35,10 +35,8 @@ func _ready() -> void:
 	_connect_once(NetworkManager.action_answered, _on_action_answered)
 	_connect_once(NetworkManager.session_interrupted, _on_session_interrupted)
 	_connect_once(%Leave.pressed, _leave)
-	%Leave.text = "Sair para o menu"
-	if SessionState.is_training:
-		%Leave.text = "Sair do modo treino"
-	%Leave.custom_minimum_size = Vector2(140.0, 40.0)
+	%Leave.text = "← Sair para o menu"
+	%Leave.custom_minimum_size = Vector2(150.0, 44.0)
 	_create_leave_dialog()
 	_pending_timer = Timer.new()
 	_pending_timer.one_shot = true
@@ -114,24 +112,19 @@ func _render_opponents() -> void:
 		var panel: VBoxContainer = VBoxContainer.new()
 		panel.alignment = BoxContainer.ALIGNMENT_CENTER
 		var name_label: Label = Label.new()
-		name_label.text = "%s · assento %d" % [String(player.get("display_name", "Jogador")), int(player.get("seat", 0)) + 1]
-		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		panel.add_child(name_label)
 		var backs: HBoxContainer = HBoxContainer.new()
 		backs.alignment = BoxContainer.ALIGNMENT_CENTER
 		var count: int = int(counts.get(peer_id, 0))
+		name_label.text = "%s · assento %d · %s" % [String(player.get("display_name", "Jogador")), int(player.get("seat", 0)) + 1, CardFormatter.cards(count)]
+		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		panel.add_child(name_label)
 		for index: int in mini(count, 5):
 			var back: CardVisual = CARD_SCENE.instantiate() as CardVisual
-			back.custom_minimum_size = Vector2(35.0, 50.0)
 			backs.add_child(back)
 			var back_data: Dictionary = {"game_id":String(public_snapshot.get("game_id", ""))}
 			back.configure(back_data, false, CardVisual.DisplayMode.OPPONENT_BACK)
 			back.set_state(false, false, false, false)
 		panel.add_child(backs)
-		var count_label: Label = Label.new()
-		count_label.text = CardFormatter.cards(count)
-		count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		panel.add_child(count_label)
 		opponents.add_child(panel)
 
 func _render_table() -> void:

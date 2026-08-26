@@ -22,13 +22,25 @@ anchor_bottom = 1.0
 theme_override_styles/panel = SubResource("felt")
 mouse_filter = 2
 
+[node name="LeaveHUD" type="CanvasLayer" parent="."]
+layer = 100
+
+[node name="Leave" type="Button" parent="LeaveHUD"]
+unique_name_in_owner = true
+offset_left = 12.0
+offset_top = 12.0
+offset_right = 162.0
+offset_bottom = 56.0
+custom_minimum_size = Vector2(150, 44)
+text = "← Sair para o menu"
+
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 18.0
-offset_top = 8.0
+offset_top = 62.0
 offset_right = -18.0
 offset_bottom = -8.0
 
@@ -56,11 +68,6 @@ text = "Preparando"
 unique_name_in_owner = true
 layout_mode = 2
 text = "Aguardando turno"
-[node name="Leave" type="Button" parent="Margin/Main/TopBar/Row"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Sair"
-
 [node name="Opponents" type="HFlowContainer" parent="Margin/Main"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 68)
@@ -89,7 +96,7 @@ alignment = 1
 unique_name_in_owner = true
 layout_mode = 2
 horizontal_alignment = 1
-text = "A partida começará quando todos estiverem prontos."
+text = "Aguardando dados da partida…"
 
 [node name="HandCount" type="Label" parent="Margin/Main"]
 unique_name_in_owner = true
