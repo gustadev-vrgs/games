@@ -22,17 +22,64 @@ anchor_bottom = 1.0
 theme_override_styles/panel = SubResource("felt")
 mouse_filter = 2
 
-[node name="LeaveHUD" type="CanvasLayer" parent="."]
+[node name="HeaderHUD" type="CanvasLayer" parent="."]
 layer = 100
 
-[node name="Leave" type="Button" parent="LeaveHUD"]
+[node name="Header" type="PanelContainer" parent="HeaderHUD"]
+offset_right = 0.0
+offset_bottom = 60.0
+anchors_preset = 10
+anchor_right = 1.0
+grow_horizontal = 2
+
+[node name="HeaderMargin" type="MarginContainer" parent="HeaderHUD/Header"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 8
+
+[node name="HeaderRow" type="HBoxContainer" parent="HeaderHUD/Header/HeaderMargin"]
+layout_mode = 2
+
+[node name="LeftSlot" type="HBoxContainer" parent="HeaderHUD/Header/HeaderMargin/HeaderRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+
+[node name="Leave" type="Button" parent="HeaderHUD/Header/HeaderMargin/HeaderRow/LeftSlot"]
 unique_name_in_owner = true
-offset_left = 12.0
-offset_top = 12.0
-offset_right = 162.0
-offset_bottom = 56.0
-custom_minimum_size = Vector2(150, 44)
-text = "← Sair para o menu"
+custom_minimum_size = Vector2(112, 42)
+text = "← SAIR"
+
+[node name="Title" type="Label" parent="HeaderHUD/Header/HeaderMargin/HeaderRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 27
+text = "TRUCO PAULISTA"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Indicators" type="HBoxContainer" parent="HeaderHUD/Header/HeaderMargin/HeaderRow"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+alignment = 2
+
+[node name="Connection" type="Label" parent="HeaderHUD/Header/HeaderMargin/HeaderRow/Indicators"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "LAN"
+vertical_alignment = 1
+[node name="Phase" type="Label" parent="HeaderHUD/Header/HeaderMargin/HeaderRow/Indicators"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "PREPARANDO"
+vertical_alignment = 1
+[node name="Turn" type="Label" parent="HeaderHUD/Header/HeaderMargin/HeaderRow/Indicators"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "AGUARDANDO"
+vertical_alignment = 1
 
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -40,34 +87,13 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 18.0
-offset_top = 62.0
+offset_top = 70.0
 offset_right = -18.0
 offset_bottom = -8.0
 
 [node name="Main" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
 
-[node name="TopBar" type="PanelContainer" parent="Margin/Main"]
-layout_mode = 2
-[node name="Row" type="HBoxContainer" parent="Margin/Main/TopBar"]
-layout_mode = 2
-[node name="Title" type="Label" parent="Margin/Main/TopBar/Row"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 23
-text = "TRUCO PAULISTA"
-[node name="Connection" type="Label" parent="Margin/Main/TopBar/Row"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "● Conectando"
-[node name="Phase" type="Label" parent="Margin/Main/TopBar/Row"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Preparando"
-[node name="Turn" type="Label" parent="Margin/Main/TopBar/Row"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Aguardando turno"
 [node name="Opponents" type="HFlowContainer" parent="Margin/Main"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 58)
@@ -81,12 +107,21 @@ size_flags_vertical = 3
 [node name="Center" type="VBoxContainer" parent="Margin/Main/Table"]
 layout_mode = 2
 alignment = 1
-[node name="GameDetail" type="Label" parent="Margin/Main/Table/Center"]
+[node name="ScoreIndicators" type="HBoxContainer" parent="Margin/Main/Table/Center"]
+layout_mode = 2
+alignment = 1
+[node name="ScorePill" type="Label" parent="Margin/Main/Table/Center/ScoreIndicators"]
 unique_name_in_owner = true
 layout_mode = 2
-horizontal_alignment = 1
-theme_override_font_sizes/font_size = 19
-text = "Preparando a mesa…"
+text = "EQUIPE A 0 × 0 EQUIPE B"
+[node name="TrickPill" type="Label" parent="Margin/Main/Table/Center/ScoreIndicators"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "1º TURNO"
+[node name="ValuePill" type="Label" parent="Margin/Main/Table/Center/ScoreIndicators"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "VALE 1"
 [node name="TableRegions" type="HBoxContainer" parent="Margin/Main/Table/Center"]
 layout_mode = 2
 size_flags_vertical = 3

@@ -19,6 +19,9 @@ func _ready() -> void:
 	%FaceDown.custom_minimum_size = Vector2(190.0, 48.0)
 	%Truco.custom_minimum_size = Vector2(170.0, 48.0)
 	%RequestPanel.visible = false
+	HubTheme.style_pill(%ScorePill, HubTheme.GOLD)
+	HubTheme.style_pill(%TrickPill, HubTheme.INFO)
+	HubTheme.style_pill(%ValuePill, HubTheme.WARNING)
 	%ResponderAs.item_selected.connect(_responder_selected)
 	%FaceDownPile.icon = TrucoSpanishCardTextures.load_back()
 	%FaceDownPile.expand_icon = true
@@ -42,7 +45,9 @@ func _render_specific_table() -> void:
 			var hidden: bool = bool(play.get("face_down", false))
 			_add_truco_table_card(play.get("card", {}) as Dictionary, _player_name(int(play.get("peer_id", -1))), hidden, int(play.get("peer_id", -1)) == winning_peer)
 	var scores: Array = public_snapshot.get("scores", [0, 0]) as Array
-	%GameDetail.text = "Equipe A %d × %d Equipe B   ·   %dº turno   ·   Mão vale %d" % [int(scores[0]), int(scores[1]), int(public_snapshot.get("trick_number", 1)), int(public_snapshot.get("accepted_value", 1))]
+	%ScorePill.text = "EQUIPE A %d × %d EQUIPE B" % [int(scores[0]), int(scores[1])]
+	%TrickPill.text = "%dº TURNO" % int(public_snapshot.get("trick_number", 1))
+	%ValuePill.text = "VALE %d" % int(public_snapshot.get("accepted_value", 1))
 	_render_history()
 	if int(public_snapshot.get("phase", -1)) == PHASE_REVEAL:
 		_show_message("O %dº turno terminou empatado" % int(reveal.get("trick_number", 1)) if bool(reveal.get("tied", false)) else "Equipe %s venceu o %dº turno" % ["A" if int(reveal.get("winner_team", 0)) == 0 else "B", int(reveal.get("trick_number", 1))])
@@ -80,13 +85,22 @@ func _render_history() -> void:
 		for play_value: Variant in entry.get("plays", []) as Array:
 			var play: Dictionary = play_value as Dictionary
 			var group: VBoxContainer = VBoxContainer.new()
+			group.custom_minimum_size = Vector2(70.0, 0.0)
+			group.alignment = BoxContainer.ALIGNMENT_CENTER
 			miniatures.add_child(group)
 			var name_label: Label = Label.new()
 			name_label.text = _player_name(int(play.get("peer_id", -1)))
+			name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 			group.add_child(name_label)
 			var hidden: bool = bool(play.get("face_down", false))
+			var card_center: CenterContainer = CenterContainer.new()
+			card_center.custom_minimum_size = Vector2(70.0, 78.0)
+			group.add_child(card_center)
 			var mini: CardVisual = CARD_SCENE.instantiate() as CardVisual
-			group.add_child(mini)
+			mini.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			mini.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			card_center.add_child(mini)
 			mini.configure(play.get("card", {}) as Dictionary, not hidden, CardVisual.DisplayMode.HISTORY_MINI)
 			mini.set_state(false, false, false, false)
 			if hidden:
@@ -96,6 +110,7 @@ func _render_history() -> void:
 		var result: Label = Label.new()
 		result.text = "Empate" if bool(entry.get("tied", false)) else "Equipe %s venceu" % ("A" if int(entry.get("winner_team", 0)) == 0 else "B")
 		result.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		result.add_theme_color_override("font_color", HubTheme.WARNING if bool(entry.get("tied", false)) else (HubTheme.SUCCESS if int(entry.get("winner_team", 0)) == int(private_snapshot.get("team", -1)) else HubTheme.DANGER))
 		%History.add_child(result)
 
 func _update_actions() -> void:
