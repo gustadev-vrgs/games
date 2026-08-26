@@ -23,12 +23,12 @@ func _ready()->void:
 	multiplayer.peer_connected.connect(_on_peer_connected);multiplayer.peer_disconnected.connect(_on_peer_disconnected);multiplayer.connected_to_server.connect(_on_connected);multiplayer.connection_failed.connect(_on_connection_failed);multiplayer.server_disconnected.connect(_on_server_disconnected)
 func create_server(nickname:String,game_id:String,settings:Dictionary,port:int)->String:
 	clean_session()
-	var name:String=GameConstants.sanitize_nickname(nickname)
-	if name.is_empty() or game_id not in GameConstants.GAMES or not GameConstants.valid_port(port):return "INVALID_CONFIG"
+	var player_name:String=GameConstants.sanitize_nickname(nickname)
+	if player_name.is_empty() or game_id not in GameConstants.GAMES or not GameConstants.valid_port(port):return "INVALID_CONFIG"
 	_peer=ENetMultiplayerPeer.new();var error:Error=_peer.create_server(port,GameConstants.MAX_TRANSPORT_CLIENTS)
 	if error!=OK:_peer=null;return "SERVER_CREATE_FAILED"
 	multiplayer.multiplayer_peer=_peer;session_id="%s-%s"%[Time.get_unix_time_from_system(),randi()];phase=SessionPhase.LOBBY;config=settings.duplicate(true);config.game_id=game_id;config.port=port
-	players[1]={"peer_id":1,"display_name":name,"seat":0,"team":-1,"ready":false,"connected":true}
+	players[1]={"peer_id":1,"display_name":player_name,"seat":0,"team":-1,"ready":false,"connected":true}
 	SessionState.session_id=session_id
 	SessionState.game_id=game_id
 	SessionState.local_peer_id=1
@@ -37,9 +37,9 @@ func create_server(nickname:String,game_id:String,settings:Dictionary,port:int)-
 	_sync_lobby()
 	return "OK"
 func create_client(nickname:String,address:String,port:int)->String:
-	clean_session();var name:String=GameConstants.sanitize_nickname(nickname)
-	if name.is_empty() or address.strip_edges().is_empty() or address.length()>255 or not GameConstants.valid_port(port):return "INVALID_CONFIG"
-	SessionState.nickname=name;_peer=ENetMultiplayerPeer.new();var error:Error=_peer.create_client(address.strip_edges(),port)
+	clean_session();var player_name:String=GameConstants.sanitize_nickname(nickname)
+	if player_name.is_empty() or address.strip_edges().is_empty() or address.length()>255 or not GameConstants.valid_port(port):return "INVALID_CONFIG"
+	SessionState.nickname=player_name;_peer=ENetMultiplayerPeer.new();var error:Error=_peer.create_client(address.strip_edges(),port)
 	if error!=OK:_peer=null;return "CLIENT_CREATE_FAILED"
 	multiplayer.multiplayer_peer=_peer;phase=SessionPhase.OFFLINE;_connection_timer=_timer(GameConstants.CONNECTION_TIMEOUT_SECONDS,_on_connection_timeout);return "OK"
 func _timer(seconds:float,callback:Callable)->Timer:
@@ -169,28 +169,28 @@ func _change_team(peer_id: int, team: int) -> String:
 	_sync_lobby()
 	return "OK"
 
-func request_lobby_ready(ready: bool) -> String:
-	return _change_ready(1, ready) if multiplayer.is_server() else _send_ready_request(ready)
+func request_lobby_ready(is_ready: bool) -> String:
+	return _change_ready(1, is_ready) if multiplayer.is_server() else _send_ready_request(is_ready)
 
-func _send_ready_request(ready: bool) -> String:
-	request_ready_state.rpc_id(1, ready)
+func _send_ready_request(is_ready: bool) -> String:
+	request_ready_state.rpc_id(1, is_ready)
 	return "PENDING"
 
-@rpc("any_peer", "call_remote", "reliable") func request_ready_state(ready: bool) -> void:
+@rpc("any_peer", "call_remote", "reliable") func request_ready_state(is_ready: bool) -> void:
 	if not multiplayer.is_server():
 		return
 	var sender: int = multiplayer.get_remote_sender_id()
-	var result: String = _change_ready(sender, ready)
+	var result: String = _change_ready(sender, is_ready)
 	receive_lobby_answer.rpc_id(sender, result)
 
-func _change_ready(peer_id: int, ready: bool) -> String:
+func _change_ready(peer_id: int, is_ready: bool) -> String:
 	if phase != SessionPhase.LOBBY:
 		return "LOBBY_LOCKED"
 	if not players.has(peer_id):
 		return "UNREGISTERED_PEER"
-	if ready and String(config.get("game_id", "")) == "truco" and int(players[peer_id].get("team", -1)) == -1:
+	if is_ready and String(config.get("game_id", "")) == "truco" and int(players[peer_id].get("team", -1)) == -1:
 		return "TEAM_REQUIRED"
-	players[peer_id]["ready"] = ready
+	players[peer_id]["ready"] = is_ready
 	_sync_lobby()
 	return "OK"
 
