@@ -34,6 +34,7 @@ var _leave_dialog: ConfirmationDialog
 
 func _ready() -> void:
 	HubTheme.apply_to(self)
+	_polish_shared_layout()
 	_connect_once(NetworkManager.public_snapshot_received, _on_public_snapshot)
 	_connect_once(NetworkManager.private_snapshot_received, _on_private_snapshot)
 	_connect_once(NetworkManager.action_answered, _on_action_answered)
@@ -59,6 +60,28 @@ func _ready() -> void:
 		_on_public_snapshot(SessionState.public_state)
 	if not SessionState.private_state.is_empty():
 		_on_private_snapshot(SessionState.private_state)
+
+func _polish_shared_layout() -> void:
+	# Keep the three game screens on the same visual grid.  These overrides live
+	# here instead of being copied into every scene, so future game modes inherit
+	# the same spacing and information hierarchy.
+	var main: VBoxContainer = get_node_or_null("Margin/Main") as VBoxContainer
+	if is_instance_valid(main):
+		main.add_theme_constant_override("separation", 12)
+	var table: PanelContainer = get_node_or_null("Margin/Main/Table") as PanelContainer
+	if is_instance_valid(table):
+		HubTheme.style_table(table)
+	var actions: HFlowContainer = get_node_or_null("Margin/Main/Actions") as HFlowContainer
+	if is_instance_valid(actions):
+		actions.add_theme_constant_override("h_separation", 10)
+		actions.add_theme_constant_override("v_separation", 8)
+	var banner: Label = get_node_or_null("Margin/Main/Banner") as Label
+	if is_instance_valid(banner):
+		HubTheme.style_status(banner)
+	var hand_count: Label = get_node_or_null("Margin/Main/HandCount") as Label
+	if is_instance_valid(hand_count):
+		hand_count.add_theme_font_size_override("font_size", 18)
+		hand_count.add_theme_color_override("font_color", HubTheme.GOLD)
 
 func _connect_once(signal_value: Signal, callable: Callable) -> void:
 	if not signal_value.is_connected(callable):
@@ -128,6 +151,7 @@ func _render_opponents() -> void:
 		var count: int = int(counts.get(peer_id, 0))
 		name_label.text = "%s · assento %d · %s" % [String(player.get("display_name", "Jogador")), int(player.get("seat", 0)) + 1, CardFormatter.cards(count)]
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_label.add_theme_color_override("font_color", HubTheme.MUTED)
 		panel.add_child(name_label)
 		for index: int in mini(count, 5):
 			var back: CardVisual = CARD_SCENE.instantiate() as CardVisual

@@ -119,7 +119,13 @@ func _draw() -> void:
 		border = Color("55d98b")
 	draw_style_box(_box(background, border, 12, 5 if winning_card else (4 if selected else 3)), bounds)
 	if is_instance_valid(_card_texture):
-		draw_texture_rect(_card_texture, bounds.grow(-2.0), false)
+		# Preserve the illustrated Spanish-deck artwork while giving it a crisp,
+		# premium frame that remains readable on the table and in the player's hand.
+		var art_bounds: Rect2 = bounds.grow(-4.0)
+		draw_texture_rect(_card_texture, art_bounds, false)
+		draw_style_box(_box(Color.TRANSPARENT, Color("8A6A2D"), 9, 2), art_bounds)
+		if face_up and String(card_data.get("game_id", "")) == "truco" and display_mode != DisplayMode.HISTORY_MINI:
+			_draw_spanish_corners(bounds)
 		if pending:
 			draw_style_box(_box(Color(0.02, 0.04, 0.05, 0.58), Color.TRANSPARENT, 12), bounds)
 		return
@@ -178,6 +184,15 @@ func _draw_spanish(bounds: Rect2) -> void:
 			draw_line(center + Vector2(-13,27), center + Vector2(12,-27), Color("79512f"), 10.0); draw_line(center + Vector2(-7,8), center + Vector2(-21,-2), Color("477a43"), 5.0); draw_line(center + Vector2(5,-8), center + Vector2(20,-17), Color("477a43"), 5.0)
 	if rank in ["10", "11", "12"]:
 		_draw_text(CardFormatter.spanish_rank(rank), bounds.position + Vector2(8.0, bounds.size.y - 9.0), 11, ink)
+
+func _draw_spanish_corners(bounds: Rect2) -> void:
+	var rank: String = CardFormatter.spanish_rank(String(card_data.get("rank", "?")))
+	var suit: String = String(card_data.get("suit", ""))
+	var ink: Color = Color("A52E2A") if suit in ["copas", "ouros"] else Color("24483B")
+	var badge: Rect2 = Rect2(bounds.position + Vector2(5.0, 5.0), Vector2(29.0, 23.0))
+	draw_style_box(_box(Color("FFF9E9E8"), Color("CBAA62"), 6, 1), badge)
+	var short_rank: String = rank.left(2).to_upper()
+	_draw_text(short_rank, badge.position + Vector2(5.0, 16.0), 12, ink)
 
 func _draw_back(bounds: Rect2) -> void:
 	var inner: Rect2 = bounds.grow(-8.0)
