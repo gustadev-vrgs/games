@@ -39,6 +39,8 @@ func _render(raw_players: Array) -> void:
 		lines.append("%d. %s%s · %s · %s" % [int(player.seat) + 1, String(player.display_name), " (host)" if int(player.peer_id) == 1 else "", "Pronto" if bool(player.ready) else "Não pronto", "Conectado" if bool(player.connected) else "Desconectado"])
 	%Players.text = "\n".join(lines)
 	%Teams.visible = game_id == "truco"
+	%Unassigned.visible = game_id == "truco"
+	%LeaveTeam.visible = game_id == "truco"
 	if game_id == "truco":
 		_render_teams(players)
 	var local: Dictionary = _local_player(players)

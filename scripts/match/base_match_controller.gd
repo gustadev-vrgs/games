@@ -9,9 +9,9 @@ var state: Dictionary = {}
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var match_end_emitted: bool = false
 
-func initialize(engine: RefCounted, players: Array, seed: int, config: Dictionary = {}) -> void:
+func initialize(engine: RefCounted, players: Array, random_seed: int, config: Dictionary = {}) -> void:
 	rules = engine
-	rng.seed = seed
+	rng.seed = random_seed
 	if engine is CaxetaRules:
 		state = rules.create_initial_state(players, rng, int(config.get("lives", 7)))
 	elif engine is TrucoRules:

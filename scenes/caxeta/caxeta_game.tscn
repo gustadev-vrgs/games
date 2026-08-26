@@ -28,9 +28,9 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 18.0
-offset_top = 14.0
+offset_top = 8.0
 offset_right = -18.0
-offset_bottom = -14.0
+offset_bottom = -8.0
 
 [node name="Main" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
@@ -63,12 +63,12 @@ text = "Sair"
 
 [node name="Opponents" type="HFlowContainer" parent="Margin/Main"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 90)
+custom_minimum_size = Vector2(0, 68)
 layout_mode = 2
 alignment = 1
 
 [node name="Table" type="PanelContainer" parent="Margin/Main"]
-custom_minimum_size = Vector2(0, 245)
+custom_minimum_size = Vector2(0, 190)
 layout_mode = 2
 size_flags_vertical = 3
 [node name="Center" type="VBoxContainer" parent="Margin/Main/Table"]
@@ -97,7 +97,7 @@ layout_mode = 2
 horizontal_alignment = 1
 text = "Sua mão"
 [node name="HandScroll" type="ScrollContainer" parent="Margin/Main"]
-custom_minimum_size = Vector2(0, 148)
+custom_minimum_size = Vector2(0, 124)
 layout_mode = 2
 horizontal_scroll_mode = 2
 vertical_scroll_mode = 0

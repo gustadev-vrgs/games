@@ -41,7 +41,10 @@ func apply_action(state: Dictionary, actor_id: int, action: Dictionary, rng: Ran
 	if not result.accepted: return result
 	if action.type == "DRAW_PILE":
 		if state.draw_pile.is_empty(): _recycle(state,rng)
-		if state.draw_pile.is_empty(): _end_round(state,-1,0,rng); return ActionResult.accepted()
+		if state.draw_pile.is_empty():
+			_end_round(state,-1,0,rng)
+			state.state_version += 1
+			return ActionResult.accepted() if validate_invariants(state)=="OK" else ActionResult.rejected("INTERNAL_STATE_ERROR")
 		state.hands[actor_id].append(state.draw_pile.pop_back()); state.phase=Phase.MAY_KNOCK_TEN_OR_DISCARD
 	elif action.type == "DRAW_DISCARD": state.hands[actor_id].append(state.discard.pop_back()); state.phase=Phase.MAY_KNOCK_TEN_OR_DISCARD
 	elif action.type == "KNOCK_TEN": _end_round(state,actor_id,2,rng)
