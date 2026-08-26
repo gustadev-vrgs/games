@@ -107,7 +107,7 @@ func _reject_and_disconnect(id:int,reason:String)->void:receive_rejection.rpc_id
 		connection_status.emit("Lista de jogadores inválida.");clean_session();return
 	session_id=id;config=settings.duplicate(true);players.clear()
 	for player:Dictionary in normalized_players:players[int(player.get("peer_id",-1))]=player
-	phase=SessionPhase.LOBBY;SessionState.session_id=id;SessionState.game_id=config.game_id;SessionState.players.assign(normalized_players);SessionState.local_peer_id=multiplayer.get_unique_id();SceneRouter.request_transition("lobby")
+	phase=SessionPhase.LOBBY;SessionState.session_id=id;SessionState.game_id=config.game_id;SessionState.approved_config=config.duplicate(true);SessionState.is_host=false;SessionState.players.assign(normalized_players);SessionState.local_peer_id=multiplayer.get_unique_id();SceneRouter.request_transition("lobby")
 func _sync_lobby()->void:
 	var normalized_players:Array[Dictionary]=_normalize_player_list(players.values())
 	if normalized_players.is_empty():
@@ -233,7 +233,19 @@ func notify_scene_ready()->void:
 	if not multiplayer.is_server() or phase!=SessionPhase.LOADING or ready_match!=match_id:return
 	_ready_peers[sender]=true
 	if _ready_peers.size()==players.size():_cancel_timer(_scene_timer);_begin_match()
-func _scene_ready_timeout()->void:phase=SessionPhase.LOBBY;notify_interruption.rpc("Tempo de carregamento esgotado; início cancelado.");session_interrupted.emit("Tempo de carregamento esgotado; início cancelado.")
+func _scene_ready_timeout()->void:
+	if phase != SessionPhase.LOADING:
+		return
+	var reason: String = "Tempo de carregamento esgotado; início cancelado."
+	_cancel_match_resources()
+	for player: Dictionary in players.values():
+		player["ready"] = false
+	phase = SessionPhase.LOBBY
+	SessionState.reset_match()
+	notify_return_to_lobby.rpc(reason)
+	SceneRouter.request_transition("lobby")
+	session_interrupted.emit(reason)
+	_sync_lobby()
 
 @rpc("authority","call_remote","reliable") func notify_interruption(reason:String)->void:
 	session_interrupted.emit(reason)

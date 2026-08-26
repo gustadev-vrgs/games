@@ -35,7 +35,7 @@ Uma execução só deve ser marcada como aprovada com código de saída 0 e sem 
 | Truco | 1/3/6/9/12, limite, equipes, correr, `TRICK_REVEAL`, transição única e histórico ordenado | Conferir modal, brilho e espera de 2,5 s em duas instâncias |
 | Rede/UI | Envio diferido, timeout, duplo clique, resposta obsoleta e cenas no runner | Latência/perda real em ENet e responsividade visual |
 
-## Protocolo v2 / configurações ampliadas
+## Protocolo v3 / configurações ampliadas
 | Área | Cobertura automatizada | Estado |
 |---|---|---|
 | Lobby Uno 2/8/9 e limite configurado | `TestLobbyConfig` | Coberto |
