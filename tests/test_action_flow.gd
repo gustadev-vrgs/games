@@ -22,7 +22,7 @@ func run(t: TestHelpers) -> void:
 
 	var truco_play: Dictionary = {"phase": 1, "current_player": 1}
 	var truco_wait: Dictionary = {"phase": 2, "current_player": 1}
-	t.check(ActionAvailability.truco_can_play(truco_play, 10, 1), "Truco permite carta durante vaza")
+	t.check(ActionAvailability.truco_can_play(truco_play, 10, 1), "Truco permite carta durante turno")
 	t.check(not ActionAvailability.truco_can_play(truco_wait, 10, 1), "Truco bloqueia carta durante pedido")
 
 	var cards: Dictionary = {10: red_card}
@@ -43,6 +43,8 @@ func run(t: TestHelpers) -> void:
 	t.check(network_source.contains("phase = SessionPhase.LOBBY"), "saída em partida devolve host ao lobby")
 	t.check(network_source.contains("host_closed_room.rpc()"), "host avisa clientes antes de encerrar")
 	t.check(network_source.contains("token != _reveal_token"), "timer antigo de revelação é ignorado")
+	t.check(network_source.contains("notify_return_to_lobby.rpc(reason)"), "timeout da barreira devolve todos ao lobby")
+	t.check(network_source.contains("SessionState.approved_config=config.duplicate(true)"), "cliente mantém configuração aprovada da sessão")
 	var uno_ui_source: String = FileAccess.get_file_as_string("res://scripts/uno/uno_game_ui.gd")
 	t.check(uno_ui_source.contains("%DrawPile.pressed.connect"), "monte central do Uno é clicável")
 	var truco_ui_source: String = FileAccess.get_file_as_string("res://scripts/truco/truco_game_ui.gd")

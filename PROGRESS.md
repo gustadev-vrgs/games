@@ -49,7 +49,7 @@
 - Testes determinísticos de regras foram ampliados para compra/reciclagem/curinga do Uno e pedidos/revelação/histórico do Truco.
 - Godot 4.5.1 e validação LAN de duas instâncias permanecem pendentes neste ambiente quando o binário não estiver disponível.
 
-## Complemento multiplayer — protocolo v2
+## Complemento multiplayer — protocolo v3
 - [x] Uno configurável de 2 a 8 (host + sete clientes ENet).
 - [x] Truco 1v1 e 2v2 com equipes autoritativas e ordem A-B-A-B por assento.
 - [x] Escolha/troca/saída de equipe, capacidade concorrente e pronto obrigatório.
