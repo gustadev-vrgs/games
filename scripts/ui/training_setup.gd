@@ -7,6 +7,7 @@ func _ready() -> void:
 	%Start.pressed.connect(_start)
 	%Back.pressed.connect(func() -> void: SceneRouter.request_transition("menu"))
 	_game_changed(0)
+	HubTheme.style_action(%Start, HubTheme.PURPLE); HubTheme.style_card(%GameSection, HubTheme.INFO); HubTheme.style_card(%OptionsSection, HubTheme.SECONDARY); HubTheme.style_muted(%Intro)
 
 func _game_changed(_index: int) -> void:
 	var game_id: String = _game_id()
