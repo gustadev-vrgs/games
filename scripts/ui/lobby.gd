@@ -84,7 +84,7 @@ func _team(team: int) -> void:
 
 func _toggle_ready() -> void:
 	var local: Dictionary = _local_player(SessionState.players)
-	_show_result(NetworkManager.request_ready(not bool(local.get("ready", false))))
+	_show_result(NetworkManager.request_lobby_ready(not bool(local.get("ready", false))))
 
 func _start() -> void:
 	_show_result(NetworkManager.request_start())

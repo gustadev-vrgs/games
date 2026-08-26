@@ -169,7 +169,7 @@ func _change_team(peer_id: int, team: int) -> String:
 	_sync_lobby()
 	return "OK"
 
-func request_ready(ready: bool) -> String:
+func request_lobby_ready(ready: bool) -> String:
 	return _change_ready(1, ready) if multiplayer.is_server() else _send_ready_request(ready)
 
 func _send_ready_request(ready: bool) -> String:
