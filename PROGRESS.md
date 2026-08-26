@@ -1,5 +1,11 @@
 # Progresso
 
+## Modo Treino local (2026-08-26)
+
+- Configuração local de Uno (2–8), Caxeta (2–5, 7/10 vidas) e Truco (1x1/2x2), sem ENet.
+- Reutilização de `BaseMatchController`, regras e snapshots; mãos virtuais ficam em cache privado exclusivo do treino e o controle segue o estado autoritativo.
+- Saída e revanche limpam controlador, timers, ações, snapshots e estado. Testes headless e percurso manual permanecem pendentes porque a Godot não está instalada neste ambiente.
+
 ## Correção prioritária — mesa responsiva e Truco espanhol
 
 - Protocolo 3 e baralho espanhol autoritativo de 40 cartas, sem ranks franceses no Truco.

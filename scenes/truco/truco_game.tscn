@@ -193,10 +193,22 @@ offset_right = 260.0
 offset_bottom = 90.0
 grow_horizontal = 2
 grow_vertical = 2
-[node name="RequestText" type="Label" parent="RequestPanel"]
+[node name="RequestBox" type="VBoxContainer" parent="RequestPanel"]
+layout_mode = 2
+[node name="RequestText" type="Label" parent="RequestPanel/RequestBox"]
 unique_name_in_owner = true
 layout_mode = 2
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
 text = "Pedido de Truco"
+[node name="ResponderRow" type="HBoxContainer" parent="RequestPanel/RequestBox"]
+unique_name_in_owner = true
+layout_mode = 2
+alignment = 1
+[node name="ResponderLabel" type="Label" parent="RequestPanel/RequestBox/ResponderRow"]
+layout_mode = 2
+text = "Responder como"
+[node name="ResponderAs" type="OptionButton" parent="RequestPanel/RequestBox/ResponderRow"]
+unique_name_in_owner = true
+layout_mode = 2

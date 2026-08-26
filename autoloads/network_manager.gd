@@ -16,6 +16,9 @@ var _processed_departures: Dictionary = {}
 var _shutting_down: bool = false
 var _is_leaving_session: bool = false
 var _intentional_disconnect: bool = false
+var is_training_mode: bool = false
+var _training_private_snapshots: Dictionary = {}
+var _training_controlled_peer: int = -1
 func _ready()->void:
 	multiplayer.peer_connected.connect(_on_peer_connected);multiplayer.peer_disconnected.connect(_on_peer_disconnected);multiplayer.connected_to_server.connect(_on_connected);multiplayer.connection_failed.connect(_on_connection_failed);multiplayer.server_disconnected.connect(_on_server_disconnected)
 func create_server(nickname:String,game_id:String,settings:Dictionary,port:int)->String:
@@ -262,6 +265,45 @@ func _begin_match()->void:
 	_controller.match_finished.connect(_match_finished)
 	_controller.initialize(engine, ids, randi(), config)
 	phase = SessionPhase.MATCH_ACTIVE
+
+func start_training(game_id: String, player_count: int, settings: Dictionary) -> String:
+	clean_session()
+	if game_id not in GameConstants.GAMES or not GameConstants.player_count_valid(game_id, player_count, settings):
+		return "WRONG_PLAYER_COUNT"
+	is_training_mode = true
+	SessionState.is_training = true
+	SessionState.is_host = true
+	session_id = "training-%s" % Time.get_ticks_msec()
+	match_id = 1
+	phase = SessionPhase.LOADING
+	config = settings.duplicate(true)
+	config["game_id"] = game_id
+	players.clear()
+	var generated: Array[Dictionary] = TrainingSession.build_players(game_id, player_count, String(settings.get("truco_mode", "2v2")))
+	if generated.is_empty(): clean_session(); return "INVALID_CONFIG"
+	for player: Dictionary in generated: players[int(player.peer_id)] = player
+	SessionState.session_id = session_id
+	SessionState.match_id = match_id
+	SessionState.game_id = game_id
+	SessionState.approved_config = config.duplicate(true)
+	SessionState.players.assign(_normalize_player_list(players.values()))
+	_begin_match()
+	SceneRouter.request_transition(game_id)
+	return "OK"
+
+func replay_training() -> void:
+	if not is_training_mode: return
+	_cancel_match_resources()
+	SessionState.reset_match()
+	match_id += 1
+	SessionState.match_id = match_id
+	state_version = 0
+	_next_action_id = 1
+	_training_private_snapshots.clear()
+	_training_controlled_peer = -1
+	phase = SessionPhase.LOADING
+	_begin_match()
+	SceneRouter.request_transition(String(config.get("game_id", "")))
 func submit_action(action_type: String, payload: Dictionary = {}) -> int:
 	if _is_leaving_session:
 		return -1
@@ -270,7 +312,9 @@ func submit_action(action_type: String, payload: Dictionary = {}) -> int:
 	var envelope: Dictionary = NetworkProtocol.envelope(session_id, match_id, action_id, state_version, action_type, payload)
 	# O host obedece ao mesmo contrato assíncrono do cliente: o chamador sempre
 	# recebe e registra o ID antes que action_answered possa ser emitido.
-	if multiplayer.is_server():
+	if is_training_mode:
+		call_deferred("_process_action", SessionState.local_peer_id, envelope)
+	elif multiplayer.is_server():
 		call_deferred("_process_action", 1, envelope)
 	else:
 		request_action.rpc_id(1, envelope)
@@ -298,11 +342,27 @@ func _answer(sender:int,id:int,accepted:bool,reason:String)->void:
 	while _action_cache.size()>GameConstants.MAX_ACTIONS_REMEMBERED_PER_PEER*players.size():_action_cache.erase(_action_cache.keys()[0])
 	_send_answer(sender,answer)
 func _send_answer(sender:int,answer:Dictionary)->void:
-	if sender==1:action_answered.emit(answer)
+	if is_training_mode:
+		action_answered.emit(answer)
+		if bool(answer.get("accepted", false)):
+			call_deferred("_training_follow_authority")
+	elif sender==1:action_answered.emit(answer)
 	else:receive_action_answer.rpc_id(sender,answer)
 @rpc("authority","call_remote","reliable") func receive_action_answer(answer:Dictionary)->void:action_answered.emit(answer)
 func _broadcast_snapshots(public:Dictionary,private:Dictionary)->void:
 	state_version=public.state_version;public.session_id=session_id;public.match_id=match_id;public.protocol_version=GameConstants.PROTOCOL_VERSION
+	if is_training_mode:
+		_training_private_snapshots = private.duplicate(true)
+		for id: Variant in _training_private_snapshots:
+			_training_private_snapshots[id].session_id = session_id
+			_training_private_snapshots[id].match_id = match_id
+		SessionState.accept_public_snapshot(public)
+		public_snapshot_received.emit(public)
+		if _training_controlled_peer == -1:
+			_training_follow_authority()
+		if String(public.get("game_id", "")) == "truco" and int(public.get("phase", -1)) == TrucoRules.Phase.TRICK_REVEAL:
+			_schedule_reveal(int(public.get("state_version", -1)))
+		return
 	receive_public_snapshot.rpc(public);SessionState.accept_public_snapshot(public);public_snapshot_received.emit(public)
 	for id in private:
 		var snapshot:Dictionary=private[id];snapshot.session_id=session_id;snapshot.match_id=match_id
@@ -310,6 +370,23 @@ func _broadcast_snapshots(public:Dictionary,private:Dictionary)->void:
 		else:receive_private_snapshot.rpc_id(id,snapshot)
 	if multiplayer.is_server() and String(public.get("game_id", "")) == "truco" and int(public.get("phase", -1)) == TrucoRules.Phase.TRICK_REVEAL:
 		_schedule_reveal(int(public.get("state_version", -1)))
+
+func _training_follow_authority() -> void:
+	if not is_training_mode or SessionState.public_state.is_empty(): return
+	var target: int = TrainingSession.controlled_peer(SessionState.public_state, _training_controlled_peer)
+	set_training_control_peer(target)
+
+func set_training_control_peer(peer_id: int) -> bool:
+	if not is_training_mode or not players.has(peer_id) or not _training_private_snapshots.has(peer_id): return false
+	if String(SessionState.public_state.get("game_id", "")) == "truco" and int(SessionState.public_state.get("phase", -1)) == TrucoRules.Phase.WAITING_TRUCO_RESPONSE:
+		var mapping: Dictionary = SessionState.public_state.get("team_by_peer", {}) as Dictionary
+		if int(mapping.get(peer_id, -1)) != int(SessionState.public_state.get("responding_team", -2)): return false
+	_training_controlled_peer = peer_id
+	SessionState.local_peer_id = peer_id
+	var snapshot: Dictionary = (_training_private_snapshots[peer_id] as Dictionary).duplicate(true)
+	SessionState.private_state = snapshot
+	private_snapshot_received.emit(snapshot)
+	return true
 
 func _schedule_reveal(version: int) -> void:
 	_cancel_timer(_reveal_timer)
@@ -320,13 +397,18 @@ func _advance_reveal(token: int) -> void:
 	if token != _reveal_token or phase != SessionPhase.MATCH_ACTIVE or state_version != token:
 		return
 	if is_instance_valid(_controller):
-		_controller.advance_authoritative_transition()
+		if _controller.advance_authoritative_transition() and is_training_mode:
+			call_deferred("_training_follow_authority")
 @rpc("authority","call_remote","reliable") func receive_public_snapshot(snapshot:Dictionary)->void:
 	if SessionState.accept_public_snapshot(snapshot):state_version=snapshot.state_version;public_snapshot_received.emit(snapshot)
 @rpc("authority","call_remote","reliable") func receive_private_snapshot(snapshot:Dictionary)->void:
 	if SessionState.accept_private_snapshot(snapshot):private_snapshot_received.emit(snapshot)
 func _match_finished(result:Dictionary)->void:
 	phase=SessionPhase.MATCH_FINISHED
+	if is_training_mode:
+		SessionState.public_state=result.duplicate(true)
+		SceneRouter.request_transition("results")
+		return
 	show_results.rpc(result)
 	SessionState.public_state=result.duplicate(true)
 	SceneRouter.request_transition("results")
@@ -358,6 +440,9 @@ func leave_session() -> void:
 	_cancel_timer(_scene_timer)
 	var was_host: bool = multiplayer.is_server() and phase != SessionPhase.OFFLINE
 	var connected: bool = multiplayer.multiplayer_peer != null and not multiplayer.multiplayer_peer is OfflineMultiplayerPeer
+	if is_training_mode:
+		_finish_session_leave()
+		return
 	if connected:
 		if was_host:
 			host_closed_room.rpc()
@@ -402,6 +487,10 @@ func clean_session(preserve_leave_guard: bool = false)->void:
 	_cancel_timer(_connection_timer);_cancel_timer(_scene_timer);_cancel_match_resources()
 	multiplayer.multiplayer_peer=OfflineMultiplayerPeer.new();_peer=null;players.clear();config.clear();_ready_peers.clear();_action_cache.clear();session_id="";match_id=0;state_version=0;phase=SessionPhase.OFFLINE;SessionState.reset_all()
 	_processed_departures.clear()
+	is_training_mode = false
+	_training_private_snapshots.clear()
+	_training_controlled_peer = -1
+	_next_action_id = 1
 	if not preserve_leave_guard:
 		_shutting_down = false
 		_is_leaving_session = false

@@ -1,10 +1,10 @@
 # Hub de Cartas
 
-Hub multiplayer LAN autoritativo em português para **Godot 4.5.1 stable**, com Uno clássico (108 cartas), Caxeta fechada (104 cartas) e Truco Paulista (40 cartas, 1x1/2x2).
+Hub de cartas em português para **Godot 4.5.1 stable**, com multiplayer LAN autoritativo e Modo Treino local para Uno clássico (108 cartas), Caxeta fechada (104 cartas) e Truco Paulista (40 cartas, 1x1/2x2).
 
 ## Abrir e executar
 
-Instale Godot 4.5.1, abra `project.godot` e pressione F6/F5. Pela linha de comando: `godot --editor --path .` ou `godot --path .`. O host informa apelido, escolhe **Criar sala**, jogo, vidas da Caxeta e porta; clientes escolhem **Entrar**, informam o IPv4 LAN e a mesma porta. Uno aceita 2–6, Caxeta 2–5 e Truco exatamente 2 ou 4 jogadores.
+Instale Godot 4.5.1, abra `project.godot` e pressione F6/F5. Pela linha de comando: `godot --editor --path .` ou `godot --path .`. Para jogar sozinho, selecione **Modo treino**, escolha jogo e configuração e controle automaticamente cada `Jogador N`, sem IP, porta ou lobby. No LAN, o host escolhe **Criar sala** e os clientes usam **Entrar** com IPv4 e porta. Uno aceita 2–8, Caxeta 2–5 e Truco exatamente 2 ou 4 jogadores.
 
 ## Rede e privacidade
 
@@ -34,7 +34,11 @@ Instale templates 4.5.1 e execute `godot --headless --path . --export-release "W
 
 ## Solução de problemas e logs
 
-Confirme versão idêntica, IP/porta, mesma rede, firewall UDP e ausência de isolamento de clientes. Em timeout, recrie a sala. Não publique dumps de memória nem logs do servidor em produção; logs de clientes não recebem mãos adversárias. O projeto não oferece Internet pública, reconexão, migração de host, bot, chat ou persistência.
+Confirme versão idêntica, IP/porta, mesma rede, firewall UDP e ausência de isolamento de clientes. Em timeout, recrie a sala. Não publique dumps de memória nem logs do servidor em produção; logs de clientes não recebem mãos adversárias. O treino mantém as mãos privadas separadas. O projeto não oferece Internet pública, reconexão, migração de host, bot, chat ou persistência.
+
+## Modo Treino local
+
+O treino instancia o mesmo controlador autoritativo e as mesmas regras/mesas do LAN sobre `OfflineMultiplayerPeer`. Jogadores virtuais ficam conectados e prontos; a mão exibida acompanha `current_player` e, em pedidos de Truco 2x2, o seletor **Responder como** permite escolher um integrante da equipe autorizada. O resultado permite novo embaralhamento com **Jogar novamente** ou limpeza integral com **Sair para o menu**.
 
 ## Assets e licença
 

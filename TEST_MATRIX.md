@@ -1,5 +1,14 @@
 # Matriz de testes
 
+## Modo Treino local (2026-08-26)
+
+| Área | Cobertura | Estado |
+|---|---|---|
+| Limites, Truco 1x1/2x2 e equipes | `tests/test_training_mode.gd` | Execução pendente sem Godot |
+| Privacidade, controle por turno, rejeição e equipe de resposta | `tests/test_training_mode.gd` | Execução pendente sem Godot |
+| Ações especiais, partida completa, revanche e saída | `LOCAL_VALIDATION.md` | Manual pendente |
+| Regressão LAN/ENet | runners e validação LAN existentes | Execução pendente |
+
 | Área | Suite/roteiro | Cobertura | Situação neste ambiente |
 |---|---|---|---|
 | Baralhos e RNG | `tests/test_decks.gd` | 40/104/108 cartas, UIDs e embaralhamento determinístico | Criada; execução Godot pendente |
