@@ -3,6 +3,7 @@ extends GameUI
 var _color_popup: PopupPanel
 var _uno_declared: bool = false
 var _uno_warning: ConfirmationDialog
+var selected_uids: Array[int] = []
 
 func _ready() -> void:
 	super()
@@ -34,7 +35,7 @@ func _render_specific_table() -> void:
 		_show_message("%s jogou um Curinga e escolheu %s." % [_player_name(int(last_play.get("peer_id", -1))), CardFormatter.uno_color(String(last_play.get("chosen_color", "")))])
 
 func _play() -> void:
-	if cards_by_uid.size() == 2 and not _uno_declared:
+	if cards_by_uid.size() - selected_uids.size() == 1 and not _uno_declared:
 		_uno_warning.popup_centered(Vector2i(570, 220))
 		return
 	_play_confirmed()
@@ -52,10 +53,11 @@ func _submit_play(chosen_color: String) -> void:
 	var payload: Dictionary = {"declared_uno": _uno_declared}
 	if not chosen_color.is_empty():
 		payload["chosen_color"] = chosen_color
-	submit_selected("PLAY_CARD", payload)
+	payload["card_uids"] = selected_uids.duplicate()
+	submit("PLAY_CARDS", payload)
 
 func _declare_uno() -> void:
-	if cards_by_uid.size() != 2 or selected_uid == -1:
+	if cards_by_uid.size() - selected_uids.size() != 1 or selected_uids.is_empty():
 		return
 	_uno_declared = true
 	%DeclareUno.text = "UNO DECLARADO ✓"
@@ -102,9 +104,13 @@ func _update_actions() -> void:
 		return
 	var local_turn: bool = ActionAvailability.is_local_turn(public_snapshot, SessionState.local_peer_id)
 	var phase: int = int(public_snapshot.get("phase", -1))
-	var selected: Dictionary = cards_by_uid.get(selected_uid, {}) as Dictionary
+	var validation_uid: int = selected_uids[0] if not selected_uids.is_empty() else selected_uid
+	var selected: Dictionary = cards_by_uid.get(validation_uid, {}) as Dictionary
 	var legal: bool = ActionAvailability.uno_card_playable(public_snapshot, private_snapshot, selected, SessionState.local_peer_id)
+	if selected_uids.size() > 1:
+		legal = legal and int(public_snapshot.get("phase", -1)) == 1
 	%Play.disabled = not legal or pending_action != -1
+	%Play.text = "JOGAR %d CARTAS" % selected_uids.size() if selected_uids.size() > 1 else "JOGAR CARTA"
 	%Draw.disabled = not local_turn or phase != 1 or pending_action != -1
 	%DrawPile.disabled = %Draw.disabled or not bool(public_snapshot.get("can_draw", false))
 	%Pass.disabled = not local_turn or phase != 2 or pending_action != -1
@@ -117,7 +123,7 @@ func _update_actions() -> void:
 	if pending_action == -1:
 		if not local_turn:
 			_show_message("Não é sua vez.")
-		elif selected_uid == -1:
+		elif selected_uids.is_empty():
 			if not _has_playable_card() and phase == 1:
 				_show_message("Você não possui uma carta válida. Compre uma carta.")
 			elif phase == 2:
@@ -125,7 +131,12 @@ func _update_actions() -> void:
 			else:
 				_show_message("Sua vez — selecione uma carta.")
 		elif legal:
-			_show_message("Você ficará com uma carta. Declare UNO antes de jogar." if cards_by_uid.size() == 2 and not _uno_declared else "Carta selecionada — clique em JOGAR CARTA.")
+			if cards_by_uid.size() - selected_uids.size() == 1 and not _uno_declared:
+				_show_message("Você ficará com uma carta. Declare UNO antes de jogar.")
+			elif selected_uids.size() > 1:
+				_show_message("%d cartas selecionadas. A última selecionada ficará no topo." % selected_uids.size())
+			else:
+				_show_message("Carta selecionada — clique em JOGAR CARTA.")
 		else:
 			_show_message("Esta carta não combina com a cor, número ou símbolo atual.")
 
@@ -139,6 +150,55 @@ func _selection_can_survive(uid: int) -> bool:
 	if not super(uid):
 		return false
 	return int(public_snapshot.get("phase", -1)) != 2 or uid == int(private_snapshot.get("drawn_uid", -2))
+
+func _on_private_snapshot(snapshot: Dictionary) -> void:
+	selected_uids.clear()
+	super(snapshot)
+
+func _select_card(uid: int) -> void:
+	if pending_action != -1:
+		return
+	var existing: int = selected_uids.find(uid)
+	if existing != -1:
+		selected_uids.remove_at(existing)
+	else:
+		var candidate: Dictionary = cards_by_uid.get(uid, {}) as Dictionary
+		if not selected_uids.is_empty():
+			var first: Dictionary = cards_by_uid.get(selected_uids[0], {}) as Dictionary
+			if int(public_snapshot.get("phase", -1)) == 2:
+				_show_message("Depois da compra, somente a carta comprada pode ser jogada e não pode ser combinada.")
+				return
+			if not _is_numeric_card(first) or not _is_numeric_card(candidate):
+				_show_message("A combinação aceita somente cartas numéricas de 0 a 9.")
+				return
+			if String(candidate.get("rank", "")) != String(first.get("rank", "")):
+				_show_message("Essa carta não entrou: escolha outra carta com o mesmo número da primeira.")
+				return
+		selected_uids.append(uid)
+	selected_uid = selected_uids.back() if not selected_uids.is_empty() else -1
+	_refresh_hand_states()
+	if selected_uids.is_empty():
+		%Selection.text = "Selecione uma carta"
+	elif selected_uids.size() == 1:
+		%Selection.text = "1 carta selecionada · ordem: 1"
+	else:
+		%Selection.text = "%d cartas selecionadas · ordem: %s · a última ficará no topo" % [selected_uids.size(), _selection_order_text()]
+	_update_actions()
+
+func _refresh_hand_states() -> void:
+	for child: Node in hand.get_children():
+		if child is CardVisual:
+			var visual: CardVisual = child as CardVisual
+			var card: Dictionary = cards_by_uid.get(visual.card_uid, {}) as Dictionary
+			visual.set_state(visual.card_uid in selected_uids, true, _card_playable_hint(card), pending_action != -1)
+
+func _selection_order_text() -> String:
+	var values: PackedStringArray = []
+	for index: int in selected_uids.size(): values.append(str(index + 1))
+	return " → ".join(values)
+
+func _is_numeric_card(card: Dictionary) -> bool:
+	return String(card.get("action", "")).is_empty() and String(card.get("rank", "")) in ["0","1","2","3","4","5","6","7","8","9"]
 
 func _card_playable_hint(card: Dictionary) -> bool:
 	return ActionAvailability.uno_card_playable(public_snapshot, private_snapshot, card, SessionState.local_peer_id)
@@ -158,8 +218,17 @@ func _on_action_answered(answer: Dictionary) -> void:
 	super(answer)
 	if was_pending and accepted:
 		_uno_declared = false
+		selected_uids.clear()
 
 func _unhandled_key_input(event: InputEvent) -> void:
+	if event.is_pressed() and not event.is_echo() and event.is_action("ui_cancel") and not selected_uids.is_empty() and pending_action == -1:
+		selected_uids.clear()
+		selected_uid = -1
+		_refresh_hand_states()
+		%Selection.text = "Selecione uma carta"
+		_update_actions()
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_pressed() and not event.is_echo() and event.keycode == KEY_U and not %DeclareUno.disabled:
 		_declare_uno()
 		get_viewport().set_input_as_handled()

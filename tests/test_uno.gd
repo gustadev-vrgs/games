@@ -53,3 +53,79 @@ func run(t:TestHelpers)->void:
 	eight.current_index = 0
 	rules._advance(eight)
 	t.equal(eight.current_index, 7, "sentido inverso fecha ciclo 1 para 8")
+	_test_numeric_combinations(t, rules, rng)
+
+func _test_numeric_combinations(t: TestHelpers, rules: UnoRules, rng: RandomNumberGenerator) -> void:
+	var state: Dictionary = _combination_state("4", "yellow", [["4", "red", ""], ["4", "blue", ""], ["9", "green", ""]])
+	var red_uid: int = state.hands[1][0].uid; var blue_uid: int = state.hands[1][1].uid
+	var version: int = state.state_version; var discard_count: int = state.discard.size()
+	var result: Dictionary = rules.apply_action(state, 1, {"type":"PLAY_CARDS", "card_uids":[red_uid, blue_uid]}, rng)
+	t.check(result.accepted, "topo 4 amarelo aceita 4 vermelho e 4 azul")
+	t.equal(state.discard.size(), discard_count + 2, "duas cartas descartadas em uma jogada")
+	t.equal(state.discard[-2].uid, red_uid, "descarte preserva a primeira posição")
+	t.equal(state.discard.back().uid, blue_uid, "última selecionada fica no topo")
+	t.equal(state.active_color, "blue", "última selecionada define a cor")
+	t.equal(state.current_index, 1, "combinação avança o turno somente uma vez")
+	t.equal(state.state_version, version + 1, "combinação incrementa a versão somente uma vez")
+	t.equal(state.last_play.cards.size(), 2, "snapshot registra todas as cartas em ordem")
+	t.equal(rules.validate_invariants(state), "OK", "combinação conserva as 108 cartas")
+
+	var three: Dictionary = _combination_state("7", "yellow", [["7", "red", ""], ["7", "blue", ""], ["7", "green", ""], ["2", "yellow", ""]])
+	var three_uids: Array = three.hands[1].slice(0, 3).map(func(card: Dictionary) -> int: return card.uid)
+	t.check(rules.apply_action(three, 1, {"type":"PLAY_CARDS", "card_uids":three_uids}, rng).accepted, "três cartas do mesmo número são aceitas")
+
+	_assert_atomic_rejection(t, rules, rng, _combination_state("4", "yellow", [["4", "red", ""], ["5", "blue", ""]]), "COMBINATION_NUMBER_MISMATCH", "números diferentes")
+	_assert_atomic_rejection(t, rules, rng, _combination_state("4", "yellow", [["4", "red", ""], ["", "blue", "skip"]]), "COMBINATION_NUMBERS_ONLY", "carta especial")
+	var duplicate: Dictionary = _combination_state("4", "yellow", [["4", "red", ""], ["8", "blue", ""]])
+	var duplicate_uid: int = duplicate.hands[1][0].uid
+	_assert_action_atomic(t, rules, rng, duplicate, {"type":"PLAY_CARDS", "card_uids":[duplicate_uid, duplicate_uid]}, "DUPLICATE_CARD_UID", "UID repetido")
+	var foreign: Dictionary = _combination_state("4", "yellow", [["4", "red", ""], ["8", "blue", ""]])
+	_assert_action_atomic(t, rules, rng, foreign, {"type":"PLAY_CARDS", "card_uids":[foreign.hands[1][0].uid, foreign.hands[2][0].uid]}, "CARD_NOT_OWNED", "carta alheia")
+	_assert_atomic_rejection(t, rules, rng, _combination_state("4", "yellow", [["6", "red", ""], ["6", "blue", ""]]), "CARD_NOT_PLAYABLE", "primeira carta incompatível")
+	var after_draw: Dictionary = _combination_state("4", "yellow", [["4", "red", ""], ["4", "blue", ""]])
+	after_draw.phase = UnoRules.Phase.AFTER_DRAW_CHOICE; after_draw.drawn_uid = after_draw.hands[1][0].uid
+	_assert_action_atomic(t, rules, rng, after_draw, {"type":"PLAY_CARDS", "card_uids":[after_draw.hands[1][0].uid, after_draw.hands[1][1].uid]}, "CANNOT_COMBINE_AFTER_DRAW", "combinação após compra")
+
+	var one_left: Dictionary = _combination_state("4", "yellow", [["4", "red", ""], ["4", "blue", ""], ["8", "green", ""]])
+	var combo: Array = [one_left.hands[1][0].uid, one_left.hands[1][1].uid]
+	rules.apply_action(one_left, 1, {"type":"PLAY_CARDS", "card_uids":combo}, rng)
+	t.equal(one_left.hands[1].size(), 3, "sem UNO, combinação que deixaria uma carta aplica penalidade de duas")
+	var declared: Dictionary = _combination_state("4", "yellow", [["4", "red", ""], ["4", "blue", ""], ["8", "green", ""]])
+	combo = [declared.hands[1][0].uid, declared.hands[1][1].uid]
+	rules.apply_action(declared, 1, {"type":"PLAY_CARDS", "card_uids":combo, "declared_uno":true}, rng)
+	t.equal(declared.hands[1].size(), 1, "com UNO, combinação deixa exatamente uma carta")
+	var win: Dictionary = _combination_state("4", "yellow", [["4", "red", ""], ["4", "blue", ""]])
+	combo = [win.hands[1][0].uid, win.hands[1][1].uid]
+	rules.apply_action(win, 1, {"type":"PLAY_CARDS", "card_uids":combo}, rng)
+	t.equal(win.winner, 1, "combinação que esvazia a mão vence sem penalidade")
+	t.equal(win.phase, UnoRules.Phase.MATCH_END, "vitória encerra a partida")
+
+	var controller := BaseMatchController.new(); controller.rules = rules; controller.state = _combination_state("4", "yellow", [["4", "red", ""], ["4", "blue", ""], ["8", "green", ""]]); controller.rng.seed = 3
+	combo = [controller.state.hands[1][0].uid, controller.state.hands[1][1].uid]
+	t.check(controller.process_action(1, {"type":"PLAY_CARDS", "card_uids":combo, "declared_uno":true}).accepted, "host autoritativo aceita a combinação usada por cliente e treino")
+	var after_host: Dictionary = controller.state.duplicate(true)
+	t.check(not controller.process_action(1, {"type":"PLAY_CARDS", "card_uids":combo}).accepted, "ação repetida não descarta o conjunto novamente")
+	t.equal(controller.state, after_host, "deduplicação lógica mantém estado após repetição")
+
+func _assert_atomic_rejection(t: TestHelpers, rules: UnoRules, rng: RandomNumberGenerator, state: Dictionary, reason: String, label: String) -> void:
+	var uids: Array = state.hands[1].slice(0, 2).map(func(card: Dictionary) -> int: return card.uid)
+	_assert_action_atomic(t, rules, rng, state, {"type":"PLAY_CARDS", "card_uids":uids}, reason, label)
+
+func _assert_action_atomic(t: TestHelpers, rules: UnoRules, rng: RandomNumberGenerator, state: Dictionary, action: Dictionary, reason: String, label: String) -> void:
+	var before: Dictionary = state.duplicate(true)
+	var result: Dictionary = rules.apply_action(state, 1, action, rng)
+	t.equal(result.reason_code, reason, "%s é rejeitada" % label)
+	t.equal(state, before, "%s não altera parcialmente o estado" % label)
+
+func _combination_state(top_rank: String, top_color: String, hand_specs: Array) -> Dictionary:
+	var deck: Array[Dictionary] = DeckBuilder.build_uno(); var top: Dictionary = _take_card(deck, top_rank, top_color, "")
+	var hand: Array[Dictionary] = []
+	for spec: Array in hand_specs: hand.append(_take_card(deck, String(spec[0]), String(spec[1]), String(spec[2])))
+	var opponent: Dictionary = deck.pop_back()
+	return {"game_id":"uno", "phase":UnoRules.Phase.PLAYER_TURN, "players":[1,2], "hands":{1:hand, 2:[opponent]}, "draw_pile":deck, "discard":[top], "active_color":top_color, "current_index":0, "direction":1, "drawn_uid":-1, "winner":-1, "last_play":{}, "last_draw":{}, "state_version":0, "total_cards":108}
+
+func _take_card(deck: Array[Dictionary], rank: String, color: String, action: String) -> Dictionary:
+	for index: int in deck.size():
+		var card: Dictionary = deck[index]
+		if card.rank == rank and card.color == color and card.action == action: return deck.pop_at(index)
+	return {}
