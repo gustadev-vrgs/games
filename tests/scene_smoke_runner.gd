@@ -1,6 +1,6 @@
 extends SceneTree
 const SCENES=["app_root","main_menu","how_to_play","host_setup","join_setup","training_setup","lobby","loading_match","results_screen","shared/card_visual","shared/player_panel","shared/message_banner","uno/uno_game","caxeta/caxeta_game","truco/truco_game","../tests/scenes/truco_spanish_deck_gallery"]
-const VIEWPORTS: Array[Vector2i]=[Vector2i(1280,720),Vector2i(1366,768),Vector2i(1600,900),Vector2i(1920,1080)]
+const VIEWPORTS: Array[Vector2i]=[Vector2i(1280,674),Vector2i(1280,720),Vector2i(1366,768),Vector2i(1600,900),Vector2i(1920,1080)]
 func _initialize()->void:call_deferred("_run")
 func _run()->void:
 	var failures: int=0
