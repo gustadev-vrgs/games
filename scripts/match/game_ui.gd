@@ -36,6 +36,8 @@ func _ready() -> void:
 	_connect_once(NetworkManager.session_interrupted, _on_session_interrupted)
 	_connect_once(%Leave.pressed, _leave)
 	%Leave.text = "Sair para o menu"
+	if SessionState.is_training:
+		%Leave.text = "Sair do modo treino"
 	%Leave.custom_minimum_size = Vector2(140.0, 40.0)
 	_create_leave_dialog()
 	_pending_timer = Timer.new()
@@ -68,8 +70,9 @@ func _on_public_snapshot(snapshot: Dictionary) -> void:
 		_show_message("Partida encerrada. Confira o resultado.")
 
 func _on_private_snapshot(snapshot: Dictionary) -> void:
+	selected_uid = -1
+	%Selection.text = "Selecione uma carta"
 	private_snapshot = snapshot.duplicate(true)
-	var previous_selection: int = selected_uid
 	cards_by_uid.clear()
 	_clear_children(hand)
 	var hand_value: Variant = snapshot.get("hand", [])
@@ -87,15 +90,17 @@ func _on_private_snapshot(snapshot: Dictionary) -> void:
 		visual.configure(card, true)
 		visual.set_state(false, true, true, pending_action != -1)
 		visual.card_clicked.connect(_select_card)
-	selected_uid = previous_selection if _selection_can_survive(previous_selection) else -1
+	selected_uid = -1
 	_refresh_hand_states()
 	%HandCount.text = "%s na sua mão" % CardFormatter.cards(cards_by_uid.size())
 	_update_actions()
+	_render_header()
+	_render_opponents()
 
 func _render_header() -> void:
 	var current_player: int = int(public_snapshot.get("current_player", -1))
 	%Turn.text = "Sua vez" if current_player == SessionState.local_peer_id else "Vez de %s" % _player_name(current_player)
-	%Connection.text = "● LAN conectada"
+	%Connection.text = "Modo treino local — você controla: %s" % _player_name(SessionState.local_peer_id) if SessionState.is_training else "● LAN conectada"
 	%Phase.text = _phase_text(int(public_snapshot.get("phase", 0)))
 
 func _render_opponents() -> void:
@@ -280,9 +285,9 @@ func _leave() -> void:
 
 func _create_leave_dialog() -> void:
 	_leave_dialog = ConfirmationDialog.new()
-	_leave_dialog.title = "Encerrar sala" if multiplayer.is_server() else "Sair da sala"
-	_leave_dialog.dialog_text = "Deseja encerrar a sala? Todos os jogadores voltarão ao menu principal." if multiplayer.is_server() else "Deseja sair da sala e voltar ao menu principal?"
-	_leave_dialog.ok_button_text = "Encerrar sala" if multiplayer.is_server() else "Sair da sala"
+	_leave_dialog.title = "Sair do modo treino" if SessionState.is_training else ("Encerrar sala" if multiplayer.is_server() else "Sair da sala")
+	_leave_dialog.dialog_text = "Deseja encerrar o treino e voltar ao menu principal?" if SessionState.is_training else ("Deseja encerrar a sala? Todos os jogadores voltarão ao menu principal." if multiplayer.is_server() else "Deseja sair da sala e voltar ao menu principal?")
+	_leave_dialog.ok_button_text = "Sair do modo treino" if SessionState.is_training else ("Encerrar sala" if multiplayer.is_server() else "Sair da sala")
 	_leave_dialog.cancel_button_text = "Cancelar"
 	_leave_dialog.confirmed.connect(func() -> void:
 		if is_instance_valid(_pending_timer):

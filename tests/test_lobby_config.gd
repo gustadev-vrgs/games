@@ -20,4 +20,4 @@ func run(t: TestHelpers) -> void:
 	players[3].team = 1
 	players[3].ready = false
 	t.equal(GameConstants.lobby_configuration_valid("truco", {"truco_mode":"2v2"}, players), "PLAYER_NOT_READY", "não pronto impede início")
-	t.equal(GameConstants.PROTOCOL_VERSION, 2, "protocolo incrementado")
+	t.equal(GameConstants.PROTOCOL_VERSION, 3, "protocolo v3 preservado")

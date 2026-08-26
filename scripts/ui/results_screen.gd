@@ -3,12 +3,20 @@ extends ScreenBase
 func _ready() -> void:
 	super()
 	%Result.text = _result_summary(SessionState.public_state)
-	%Back.pressed.connect(func() -> void: NetworkManager.return_to_lobby())
+	if SessionState.is_training:
+		%Back.pressed.connect(NetworkManager.replay_training)
+	else:
+		%Back.pressed.connect(func() -> void: NetworkManager.return_to_lobby())
 	%Close.pressed.connect(_close_room)
 	%Back.visible = multiplayer.is_server()
 	%Close.visible = not SessionState.session_id.is_empty()
 	%Close.text = "Sair para o menu"
 	%Close.custom_minimum_size = Vector2(140.0, 40.0)
+	if SessionState.is_training:
+		%Back.visible = true
+		%Back.text = "Jogar novamente"
+		%Close.visible = true
+		%Close.text = "Sair para o menu"
 
 func _result_summary(snapshot: Dictionary) -> String:
 	var winner: int = int(snapshot.get("winner", -1))
@@ -30,8 +38,8 @@ func _player_name(peer_id: int) -> String:
 
 func _close_room() -> void:
 	var dialog: ConfirmationDialog = ConfirmationDialog.new()
-	dialog.dialog_text = "Deseja encerrar a sala? Todos os jogadores voltarão ao menu principal." if multiplayer.is_server() else "Deseja sair da sala e voltar ao menu principal?"
-	dialog.ok_button_text = "Encerrar sala" if multiplayer.is_server() else "Sair da sala"
+	dialog.dialog_text = "Deseja encerrar o treino e voltar ao menu principal?" if SessionState.is_training else ("Deseja encerrar a sala? Todos os jogadores voltarão ao menu principal." if multiplayer.is_server() else "Deseja sair da sala e voltar ao menu principal?")
+	dialog.ok_button_text = "Sair do modo treino" if SessionState.is_training else ("Encerrar sala" if multiplayer.is_server() else "Sair da sala")
 	dialog.confirmed.connect(NetworkManager.leave_session)
 	add_child(dialog)
 	dialog.popup_centered(Vector2i(520, 180))

@@ -19,6 +19,7 @@ func _ready() -> void:
 	%FaceDown.custom_minimum_size = Vector2(190.0, 48.0)
 	%Truco.custom_minimum_size = Vector2(170.0, 48.0)
 	%RequestPanel.visible = false
+	%ResponderAs.item_selected.connect(_responder_selected)
 	%FaceDownPile.icon = TrucoSpanishCardTextures.load_back()
 	%FaceDownPile.expand_icon = true
 	_create_face_down_dialog()
@@ -127,11 +128,27 @@ func _update_actions() -> void:
 	%Raise.text = "Pedir %s" % String(VALUE_NAMES.get(next_value, ""))
 	%Accept.disabled = blocked; %Run.disabled = blocked; %Raise.disabled = blocked
 	%RequestPanel.visible = waiting
+	_update_responder_selector(waiting)
 	if waiting:
 		var target: int = int(public_snapshot.get("target_value", 0))
 		%RequestText.text = "%s chamou %s!\nA mão passará a valer %d pontos.\n%s" % [_player_name(int(public_snapshot.get("requesting_peer", -1))), String(VALUE_NAMES.get(target, "TRUCO")), target, "Sua equipe deve responder." if responding else "Aguardando resposta adversária…"]
 	elif phase == PHASE_REVEAL:
 		_show_message("Conferindo o resultado do turno…")
+
+func _update_responder_selector(waiting: bool) -> void:
+	%ResponderRow.visible = SessionState.is_training and waiting
+	if not %ResponderRow.visible: return
+	var members: Dictionary = public_snapshot.get("team_members", {}) as Dictionary
+	var candidates: Array = members.get(int(public_snapshot.get("responding_team", -1)), []) as Array
+	%ResponderAs.clear()
+	for value: Variant in candidates:
+		var id: int = int(value)
+		%ResponderAs.add_item(_player_name(id), id)
+		if id == SessionState.local_peer_id: %ResponderAs.select(%ResponderAs.item_count - 1)
+
+func _responder_selected(index: int) -> void:
+	if SessionState.is_training and pending_action == -1:
+		NetworkManager.set_training_control_peer(%ResponderAs.get_item_id(index))
 
 func _create_face_down_dialog() -> void:
 	_face_down_dialog = ConfirmationDialog.new()
