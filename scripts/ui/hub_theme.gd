@@ -59,6 +59,13 @@ static func style_action(button: Button, color: Color) -> void:
 static func style_card(panel: PanelContainer, color: Color = GOLD) -> void:
 	panel.add_theme_stylebox_override("panel", _box(Color("0D3339F2"), Color(color, 0.8), 14, 1, 14, true))
 
+static func style_table(panel: PanelContainer) -> void:
+	panel.add_theme_stylebox_override("panel", _box(Color("082D31E8"), Color("4E8B83"), 18, 2, 18, true))
+
+static func style_status(label: Label) -> void:
+	label.add_theme_color_override("font_color", TEXT)
+	label.add_theme_stylebox_override("normal", _box(Color("061F24D9"), Color("356B6C"), 10, 1, 7))
+
 static func style_exit(button: Button) -> void:
 	button.add_theme_color_override("font_color", TEXT)
 	button.add_theme_stylebox_override("normal", _box(Color("8F343B"), DANGER, 12, 2, 10))
