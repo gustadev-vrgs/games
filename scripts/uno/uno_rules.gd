@@ -17,10 +17,26 @@ func validate_action(state: Dictionary, actor_id: int, action: Dictionary) -> Di
 	var kind: String = action.get("type","")
 	if kind == "DRAW_ONE": return ActionResult.accepted() if state.phase == Phase.PLAYER_TURN else ActionResult.rejected("ALREADY_DREW")
 	if kind == "PASS": return ActionResult.accepted() if state.phase == Phase.AFTER_DRAW_CHOICE else ActionResult.rejected("MUST_DRAW_FIRST")
-	if kind != "PLAY_CARD": return ActionResult.rejected("INVALID_MESSAGE")
-	var card: Dictionary = _find(state.hands[actor_id],int(action.get("card_uid",-1)))
-	if card.is_empty(): return ActionResult.rejected("CARD_NOT_OWNED")
-	if state.phase == Phase.AFTER_DRAW_CHOICE and card.uid != state.drawn_uid: return ActionResult.rejected("CARD_NOT_PLAYABLE")
+	if kind not in ["PLAY_CARD", "PLAY_CARDS"]: return ActionResult.rejected("INVALID_MESSAGE")
+	var uids: Array = _action_uids(action)
+	if uids.is_empty(): return ActionResult.rejected("INVALID_MESSAGE")
+	var seen: Dictionary = {}; var cards: Array[Dictionary] = []
+	for uid_value: Variant in uids:
+		var uid: int = int(uid_value)
+		if seen.has(uid): return ActionResult.rejected("DUPLICATE_CARD_UID")
+		seen[uid] = true
+		var owned: Dictionary = _find(state.hands[actor_id], uid)
+		if owned.is_empty(): return ActionResult.rejected("CARD_NOT_OWNED")
+		cards.append(owned)
+	var card: Dictionary = cards[0]
+	if state.phase == Phase.AFTER_DRAW_CHOICE:
+		if cards.size() != 1: return ActionResult.rejected("CANNOT_COMBINE_AFTER_DRAW")
+		if card.uid != state.drawn_uid: return ActionResult.rejected("CARD_NOT_PLAYABLE")
+	if cards.size() > 1:
+		if not _is_number(card): return ActionResult.rejected("COMBINATION_NUMBERS_ONLY")
+		for combined: Dictionary in cards:
+			if not _is_number(combined): return ActionResult.rejected("COMBINATION_NUMBERS_ONLY")
+			if combined.rank != card.rank: return ActionResult.rejected("COMBINATION_NUMBER_MISMATCH")
 	var chosen: String = action.get("chosen_color","")
 	if card.action in ["wild","wild_draw_four"] and chosen not in COLORS: return ActionResult.rejected("INVALID_COLOR")
 	if card.action not in ["wild","wild_draw_four"] and not chosen.is_empty(): return ActionResult.rejected("INVALID_COLOR")
@@ -48,16 +64,20 @@ func apply_action(state: Dictionary, actor_id: int, action: Dictionary, rng: Ran
 				else:
 					_advance(state)
 		"PASS": _advance(state)
-		"PLAY_CARD": _play(state,actor_id,action,rng)
+		"PLAY_CARD", "PLAY_CARDS": _play(state,actor_id,action,rng)
 	state.state_version += 1
 	var invariant: String = validate_invariants(state)
 	if invariant != "OK": return ActionResult.rejected("INTERNAL_STATE_ERROR")
 	return ActionResult.accepted()
 func _play(state: Dictionary, actor_id: int, action: Dictionary, rng: RandomNumberGenerator) -> void:
-	var hand: Array = state.hands[actor_id]; var index: int = _index(hand,action.card_uid); var card: Dictionary = hand.pop_at(index); state.discard.append(card)
+	var hand: Array = state.hands[actor_id]; var played: Array[Dictionary] = []
+	for uid_value: Variant in _action_uids(action):
+		var index: int = _index(hand, int(uid_value)); var removed: Dictionary = hand.pop_at(index)
+		state.discard.append(removed); played.append(removed)
+	var card: Dictionary = played.back()
 	var chosen_color: String = String(action.get("chosen_color", ""))
 	state.active_color = chosen_color if card.action in ["wild","wild_draw_four"] else card.color
-	state.last_play = {"peer_id":actor_id,"card":card.duplicate(true),"chosen_color":chosen_color,"declared_uno":bool(action.get("declared_uno",false))}
+	state.last_play = {"peer_id":actor_id,"card":card.duplicate(true),"cards":played.duplicate(true),"chosen_color":chosen_color,"declared_uno":bool(action.get("declared_uno",false))}
 	state.drawn_uid = -1
 	if hand.is_empty(): state.winner = actor_id; state.phase = Phase.MATCH_END; return
 	if hand.size() == 1 and not action.get("declared_uno",false): _draw_many(state,actor_id,2,rng)
@@ -91,6 +111,14 @@ func _index(cards: Array, uid: int) -> int:
 	for index in cards.size():
 		if cards[index].uid == uid: return index
 	return -1
+func _action_uids(action: Dictionary) -> Array:
+	if String(action.get("type", "")) == "PLAY_CARDS":
+		var value: Variant = action.get("card_uids", [])
+		return value.duplicate() if value is Array else []
+	return [int(action.get("card_uid", -1))]
+func _is_number(card: Dictionary) -> bool:
+	var rank: String = String(card.get("rank", ""))
+	return String(card.get("action", "")).is_empty() and rank in ["0","1","2","3","4","5","6","7","8","9"]
 func build_public_snapshot(state: Dictionary) -> Dictionary:
 	var counts: Dictionary = {}
 	for id in state.players: counts[id] = state.hands[id].size()

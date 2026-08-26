@@ -12,7 +12,7 @@
 | Área | Suite/roteiro | Cobertura | Situação neste ambiente |
 |---|---|---|---|
 | Baralhos e RNG | `tests/test_decks.gd` | 40/104/108 cartas, UIDs e embaralhamento determinístico | Criada; execução Godot pendente |
-| Uno | `tests/test_uno.gd` | distribuição, jogabilidade, efeitos, +4, Uno, reciclagem e conservação | Criada; execução Godot pendente |
+| Uno | `tests/test_uno.gd` | distribuição, jogabilidade, combinação de 2/3 números iguais, ordem do descarte, atomicidade, UNO/vitória, efeitos, +4, reciclagem e conservação | Criada; execução Godot pendente |
 | Caxeta/solver | `tests/test_caxeta.gd` | trincas, sequências, curingas, batidas, vidas e conservação | Criada; execução Godot pendente |
 | Truco | `tests/test_truco.gd` | manilha, turnos, empates, pedidos, 1x1/2x2, placar e conservação | Criada; execução Godot pendente |
 | Truco espanhol/encoberta | `tests/test_truco.gd` | 40 cartas, ciclo da manilha, restrição, conservação e sanitização pública | Criada; execução Godot pendente |
@@ -25,6 +25,10 @@
 | Windows | `export_presets.cfg` | export release x86_64 com recursos embutidos | Templates/execução pendentes |
 
 Uma execução só deve ser marcada como aprovada com código de saída 0 e sem mensagens de parser, recurso ou RPC no stderr.
+
+### Combinação numérica do Uno
+
+O roteiro automatizado cobre o exemplo completo (4 amarelo no topo; 4 vermelho e 4 azul enviados em uma única `PLAY_CARDS`), três cartas, rejeição de números diferentes, especiais, UID duplicado/alheio, primeira carta incompatível e fase posterior à compra. Também verifica ausência de mutação parcial, uma única troca de turno/versão, ordem pública do descarte, declaração de UNO, vitória, conservação das 108 cartas e repetição da ação no controlador autoritativo. A validação visual deve confirmar seleção alternável, elevação/contorno, indicador de ordem, texto `2 cartas selecionadas`, botão `JOGAR 2 CARTAS` e troca de jogador somente após a resposta do host em LAN e Modo Treino.
 
 ## Regressão multiplayer — mesas (2026-08-25)
 
