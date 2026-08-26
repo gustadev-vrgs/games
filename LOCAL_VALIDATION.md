@@ -1,5 +1,13 @@
 # Validação local obrigatória — Godot 4.5.1 stable
 
+## Modo Treino
+
+1. Abra **Modo treino** e conclua Uno com 2 e 8 jogadores, incluindo compra, passe, curinga, escolha de cor e UNO.
+2. Conclua Caxeta com 2 e 5 jogadores em 7 e 10 vidas, exercitando compra, descarte, batida e eliminação.
+3. Conclua Truco 1x1 e 2x2; confira ordem A1/B1/A2/B2, encoberta após o primeiro turno, pedidos até 12, **Responder como**, revela de 2,5 s e placar.
+4. Em cada troca, confirme remoção imediata da mão anterior e exibição exclusiva da mão controlada.
+5. Teste rejeição, saída durante ação/revela, **Jogar novamente** e dois treinos consecutivos sem estado residual.
+
 > **Status: CORREÇÃO IMPLEMENTADA — VALIDAÇÃO LOCAL PENDENTE.** O ambiente da correção não disponibilizou `godot` nem `godot4`; portanto, os comandos abaixo não foram declarados como aprovados e devem ser executados em uma instalação local da versão exata.
 
 Na rodada LAN com duas instâncias, valide o Truco espanhol (vira e monte à esquerda, encoberta bloqueada no primeiro turno, verso privado no segundo/terceiro, histórico lateral e progressão Truco/6/9/12), a declaração de UNO com duas cartas e vitória ao zerar a mão, e a saída de cliente/host para o menu. Repita em 1280×720, 1366×768, 1600×900 e 1920×1080, confirmando cabeçalho, mão e barra de ações dentro do viewport.
