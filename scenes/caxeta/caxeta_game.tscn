@@ -113,9 +113,11 @@ layout_mode = 2
 
 [node name="Opponents" type="HFlowContainer" parent="Margin/Main"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 68)
+custom_minimum_size = Vector2(0, 104)
 layout_mode = 2
 alignment = 1
+theme_override_constants/h_separation = 18
+theme_override_constants/v_separation = 8
 
 [node name="Table" type="PanelContainer" parent="Margin/Main"]
 custom_minimum_size = Vector2(0, 190)

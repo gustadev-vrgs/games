@@ -145,12 +145,17 @@ func _render_opponents() -> void:
 			continue
 		var panel: VBoxContainer = VBoxContainer.new()
 		panel.alignment = BoxContainer.ALIGNMENT_CENTER
+		panel.add_theme_constant_override("separation", 4)
+		panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		var name_label: Label = Label.new()
 		var backs: HBoxContainer = HBoxContainer.new()
 		backs.alignment = BoxContainer.ALIGNMENT_CENTER
+		backs.add_theme_constant_override("separation", -8)
+		backs.tooltip_text = "Representação compacta da mão oculta"
 		var count: int = int(counts.get(peer_id, 0))
 		name_label.text = "%s · assento %d · %s" % [String(player.get("display_name", "Jogador")), int(player.get("seat", 0)) + 1, CardFormatter.cards(count)]
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		name_label.add_theme_color_override("font_color", HubTheme.MUTED)
 		panel.add_child(name_label)
 		for index: int in mini(count, 5):
@@ -159,6 +164,15 @@ func _render_opponents() -> void:
 			var back_data: Dictionary = {"game_id":String(public_snapshot.get("game_id", ""))}
 			back.configure(back_data, false, CardVisual.DisplayMode.OPPONENT_BACK)
 			back.set_state(false, false, false, false)
+		var count_badge: Label = Label.new()
+		count_badge.custom_minimum_size = Vector2(36.0, 0.0)
+		count_badge.text = "×%d" % count
+		count_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		count_badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		count_badge.add_theme_font_size_override("font_size", 13)
+		count_badge.add_theme_color_override("font_color", HubTheme.GOLD)
+		count_badge.tooltip_text = "%s na mão oculta; são exibidas no máximo 5 miniaturas" % CardFormatter.cards(count)
+		backs.add_child(count_badge)
 		panel.add_child(backs)
 		opponents.add_child(panel)
 
