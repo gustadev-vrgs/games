@@ -35,6 +35,8 @@ var _leave_dialog: ConfirmationDialog
 func _ready() -> void:
 	HubTheme.apply_to(self)
 	_polish_shared_layout()
+	get_viewport().size_changed.connect(_apply_responsive_layout)
+	_apply_responsive_layout()
 	_connect_once(NetworkManager.public_snapshot_received, _on_public_snapshot)
 	_connect_once(NetworkManager.private_snapshot_received, _on_private_snapshot)
 	_connect_once(NetworkManager.action_answered, _on_action_answered)
@@ -67,7 +69,7 @@ func _polish_shared_layout() -> void:
 	# the same spacing and information hierarchy.
 	var main: VBoxContainer = get_node_or_null("Margin/Main") as VBoxContainer
 	if is_instance_valid(main):
-		main.add_theme_constant_override("separation", 12)
+		main.add_theme_constant_override("separation", 10)
 	var table: PanelContainer = get_node_or_null("Margin/Main/Table") as PanelContainer
 	if is_instance_valid(table):
 		HubTheme.style_table(table)
@@ -82,6 +84,32 @@ func _polish_shared_layout() -> void:
 	if is_instance_valid(hand_count):
 		hand_count.add_theme_font_size_override("font_size", 18)
 		hand_count.add_theme_color_override("font_color", HubTheme.GOLD)
+
+func _apply_responsive_layout() -> void:
+	# 720 px is the desktop baseline.  Protect the hand and action row, and give
+	# only the remainder to the table; on taller windows the table is the sole
+	# region which expands.  No global scaling is used, so cards remain legible.
+	var viewport_height: float = get_viewport_rect().size.y
+	var compact: bool = viewport_height <= 768.0
+	var main: VBoxContainer = get_node_or_null("Margin/Main") as VBoxContainer
+	var table: PanelContainer = get_node_or_null("Margin/Main/Table") as PanelContainer
+	var opponent_band: MarginContainer = get_node_or_null("HeaderHUD/TopRegions/OpponentBand") as MarginContainer
+	var margin: MarginContainer = get_node_or_null("Margin") as MarginContainer
+	if is_instance_valid(main):
+		main.add_theme_constant_override("separation", 4 if compact else 10)
+	if is_instance_valid(table):
+		table.custom_minimum_size.y = 150.0 if compact else 190.0
+		table.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	if is_instance_valid(opponent_band):
+		opponent_band.custom_minimum_size.y = 110.0 if compact else 118.0
+	if is_instance_valid(margin):
+		# Header (72) + the compact opponent strip (its content may require a few
+		# extra pixels) + a small visual gutter.  This value is derived from the
+		# actual container minimum rather than from the editor window.
+		var top_regions: VBoxContainer = get_node_or_null("HeaderHUD/TopRegions") as VBoxContainer
+		var top_height: float = maxf(182.0 if compact else 190.0, top_regions.get_combined_minimum_size().y if is_instance_valid(top_regions) else 0.0)
+		margin.offset_top = top_height + (4.0 if compact else 8.0)
+		margin.offset_bottom = -8.0 if compact else -14.0
 
 func _connect_once(signal_value: Signal, callable: Callable) -> void:
 	if not signal_value.is_connected(callable):

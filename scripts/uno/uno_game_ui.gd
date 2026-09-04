@@ -26,7 +26,7 @@ func _ready() -> void:
 func _render_specific_table() -> void:
 	var top_value: Variant = public_snapshot.get("top_card", {})
 	if top_value is Dictionary:
-		_add_table_card(top_value as Dictionary, "Descarte")
+		_add_table_card(top_value as Dictionary, "Descarte", true, CardVisual.DisplayMode.TABLE)
 	var direction: int = int(public_snapshot.get("direction", 1))
 	%GameDetail.text = "Cor ativa: %s   ·   Direção: %s" % [CardFormatter.uno_color(String(public_snapshot.get("active_color", "—"))), "horária" if direction == 1 else "anti-horária"]
 	var active_color: String = String(public_snapshot.get("active_color", "—"))
