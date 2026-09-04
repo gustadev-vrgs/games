@@ -21,8 +21,8 @@ const SUITS: Dictionary = {
 	"espadas": "♠",
 	"ouros": "♦",
 }
-const CAXETA_ART_INSET: float = 9.0
 const STANDARD_ART_INSET: float = 4.0
+const CAXETA_TEXTURE_FALLBACK_SIZE := Vector2(500.0, 726.0)
 
 var card_uid: int = -1
 var card_data: Dictionary = {}
@@ -75,13 +75,14 @@ func configure(card: Dictionary, up: bool = true, mode: DisplayMode = DisplayMod
 	_refresh()
 
 func _apply_display_size() -> void:
+	var is_caxeta: bool = String(card_data.get("game_id", "")) == "caxeta"
 	match display_mode:
 		DisplayMode.HAND:
-			custom_minimum_size = Vector2(88.0, 126.0)
+			custom_minimum_size = Vector2(90.0, 131.0) if is_caxeta else Vector2(88.0, 126.0)
 		DisplayMode.TABLE, DisplayMode.SPANISH_DECK, DisplayMode.FACE_DOWN_PLAY:
-			custom_minimum_size = Vector2(76.0, 108.0)
+			custom_minimum_size = Vector2(82.0, 119.0) if is_caxeta and display_mode == DisplayMode.TABLE else Vector2(76.0, 108.0)
 		DisplayMode.OPPONENT_BACK:
-			custom_minimum_size = Vector2(52.0, 74.0)
+			custom_minimum_size = Vector2(46.0, 67.0) if is_caxeta else Vector2(52.0, 74.0)
 		DisplayMode.HISTORY_MINI:
 			custom_minimum_size = Vector2(50.0, 70.0)
 	pivot_offset = Vector2(custom_minimum_size.x * 0.5, custom_minimum_size.y - 8.0)
@@ -110,6 +111,13 @@ func set_winning_card(value: bool) -> void:
 	_refresh()
 
 func _draw() -> void:
+	if _is_caxeta_face_texture():
+		_draw_caxeta_texture_card()
+		return
+	if not face_up and String(card_data.get("game_id", "")) == "caxeta":
+		var back_area := Rect2(Vector2(2.0, 1.0 - _visual_lift), Vector2(maxf(1.0, size.x - 7.0), maxf(1.0, size.y - 6.0)))
+		_draw_caxeta_back(_fit_texture_preserving_aspect(null, back_area))
+		return
 	# Always fit a 5:7 rectangle inside the allocated control. Containers may grow,
 	# but the card itself must never inherit that distortion.
 	var available: Vector2 = Vector2(maxf(1.0, size.x - 8.0), maxf(1.0, size.y - 8.0))
@@ -125,8 +133,6 @@ func _draw() -> void:
 	draw_style_box(_box(background, border, 12, 5 if winning_card else (4 if selected else 3)), bounds)
 	if is_instance_valid(_card_texture):
 		var art_bounds: Rect2 = bounds.grow(-STANDARD_ART_INSET)
-		if String(card_data.get("game_id", "")) == "caxeta":
-			art_bounds = _caxeta_art_rect(_card_texture, bounds)
 		draw_texture_rect(_card_texture, art_bounds, false)
 		draw_style_box(_box(Color.TRANSPARENT, Color("8A6A2D"), 9, 2), art_bounds)
 		if face_up and String(card_data.get("game_id", "")) == "truco" and display_mode != DisplayMode.HISTORY_MINI:
@@ -147,10 +153,38 @@ func _draw() -> void:
 		draw_style_box(_box(Color(0.02, 0.04, 0.05, 0.58), Color.TRANSPARENT, 12), bounds)
 		_draw_centered("…", 30, HubTheme.TEXT, bounds)
 
-func _caxeta_art_rect(texture: Texture2D, bounds: Rect2) -> Rect2:
-	# The PNG already contains its own white card margin. A second, deliberate
-	# inset keeps its corner indices clear of the interactive frame and highlights.
-	return _fit_texture_rect(texture, bounds.grow(-CAXETA_ART_INSET))
+func _is_caxeta_face_texture() -> bool:
+	return face_up and String(card_data.get("game_id", "")) == "caxeta" and is_instance_valid(_card_texture)
+
+func _draw_caxeta_texture_card() -> void:
+	# Caxeta's PNG is the card itself. Only reserve enough room for a quiet shadow;
+	# never place the artwork inside the shared decorative card frame.
+	var area := Rect2(Vector2(2.0, 1.0 - _visual_lift), Vector2(maxf(1.0, size.x - 7.0), maxf(1.0, size.y - 6.0)))
+	var texture_bounds := _fit_texture_preserving_aspect(_card_texture, area)
+	var shadow_bounds := Rect2(texture_bounds.position + Vector2(2.0, 3.0), texture_bounds.size)
+	draw_style_box(_box(Color(0.0, 0.0, 0.0, 0.22), Color.TRANSPARENT, 6), shadow_bounds)
+	draw_texture_rect(_card_texture, texture_bounds, false)
+
+	# Interaction rings sit outside the PNG and therefore never shrink or tint it.
+	var highlight: Color = Color.TRANSPARENT
+	if winning_card or selected or recently_played:
+		highlight = Color("ffd45a")
+	elif playable_hint and not pending:
+		highlight = Color("55d98b")
+	if highlight.a > 0.0:
+		draw_style_box(_box(Color.TRANSPARENT, highlight, 6, 2), texture_bounds.grow(2.0))
+	if pending:
+		draw_style_box(_box(Color(0.02, 0.04, 0.05, 0.58), Color.TRANSPARENT, 5), texture_bounds)
+
+func _fit_texture_preserving_aspect(texture: Texture2D, area: Rect2) -> Rect2:
+	var texture_size := texture.get_size() if is_instance_valid(texture) else CAXETA_TEXTURE_FALLBACK_SIZE
+	if texture_size.x <= 0.0 or texture_size.y <= 0.0:
+		texture_size = CAXETA_TEXTURE_FALLBACK_SIZE
+	var texture_aspect: float = texture_size.x / texture_size.y
+	var fitted_size := Vector2(area.size.x, area.size.x / texture_aspect)
+	if fitted_size.y > area.size.y:
+		fitted_size = Vector2(area.size.y * texture_aspect, area.size.y)
+	return Rect2(area.get_center() - fitted_size * 0.5, fitted_size)
 
 func _fit_texture_rect(texture: Texture2D, bounds: Rect2) -> Rect2:
 	var texture_size: Vector2 = texture.get_size()
@@ -213,6 +247,9 @@ func _draw_spanish_corners(bounds: Rect2) -> void:
 	_draw_text(short_rank, badge.position + Vector2(5.0, 16.0), 12, ink)
 
 func _draw_back(bounds: Rect2) -> void:
+	if String(card_data.get("game_id", "")) == "caxeta":
+		_draw_caxeta_back(bounds)
+		return
 	var inset: float = 6.0 if display_mode == DisplayMode.OPPONENT_BACK else 8.0
 	var inner: Rect2 = bounds.grow(-inset)
 	draw_style_box(_box(Color("173d50"), Color("d8b45b"), 8, 2), inner)
@@ -222,6 +259,24 @@ func _draw_back(bounds: Rect2) -> void:
 			draw_circle(Vector2(x_value, y_value), 1.8 if display_mode == DisplayMode.OPPONENT_BACK else 2.2, Color(0.85, 0.7, 0.35, 0.72))
 	var back_label_size: int = 11 if display_mode == DisplayMode.OPPONENT_BACK else 13
 	_draw_centered("TRUCO" if display_mode in [DisplayMode.SPANISH_DECK, DisplayMode.FACE_DOWN_PLAY, DisplayMode.HISTORY_MINI] else "HC", back_label_size, Color("f1d783"), bounds)
+
+func _draw_caxeta_back(bounds: Rect2) -> void:
+	var mini_back: bool = display_mode == DisplayMode.OPPONENT_BACK
+	var outer := bounds.grow(-2.0)
+	var shadow := Rect2(outer.position + Vector2(2.0, 3.0), outer.size)
+	draw_style_box(_box(Color(0.0, 0.0, 0.0, 0.2), Color.TRANSPARENT, 6), shadow)
+	draw_style_box(_box(Color("102f3d"), Color("d8b45b"), 6, 1), outer)
+	var inner := outer.grow(-5.0 if mini_back else -7.0)
+	draw_style_box(_box(Color("173d50"), Color("9f8243"), 4, 1), inner)
+	# Mini backs favor one readable emblem over the dense pattern used on the pile.
+	if not mini_back:
+		for y_value in range(int(inner.position.y) + 7, int(inner.end.y), 13):
+			for x_value in range(int(inner.position.x) + 7, int(inner.end.x), 13):
+				draw_circle(Vector2(x_value, y_value), 1.7, Color(0.85, 0.7, 0.35, 0.58))
+	var emblem_radius: float = 12.0 if mini_back else 17.0
+	draw_circle(inner.get_center(), emblem_radius, Color("d8b45b"))
+	draw_circle(inner.get_center(), emblem_radius - 3.0, Color("173d50"))
+	_draw_centered("HC", 13 if mini_back else 16, Color("f1d783"), inner)
 
 func _background_color() -> Color:
 	if not face_up:
