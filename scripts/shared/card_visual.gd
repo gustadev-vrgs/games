@@ -133,6 +133,9 @@ func _draw() -> void:
 	if _is_caxeta_face_texture():
 		_draw_caxeta_texture_card()
 		return
+	if face_up and String(card_data.get("game_id", "")) == "truco" and is_instance_valid(_card_texture):
+		_draw_truco_texture_card()
+		return
 	if not face_up and String(card_data.get("game_id", "")) == "caxeta":
 		var back_area := _card_bounds()
 		_draw_caxeta_back(_fit_texture_preserving_aspect(null, back_area))
@@ -174,6 +177,25 @@ func _draw() -> void:
 
 func _is_caxeta_face_texture() -> bool:
 	return face_up and String(card_data.get("game_id", "")) == "caxeta" and is_instance_valid(_card_texture)
+
+func _draw_truco_texture_card() -> void:
+	var bounds: Rect2 = _card_bounds()
+	var shadow := Rect2(bounds.position + Vector2(2.0, 3.0), bounds.size)
+	draw_style_box(_box(Color(0.0, 0.0, 0.0, 0.22), Color.TRANSPARENT, 7), shadow)
+	draw_style_box(_box(Color("fff9ea"), Color("cbbd9c"), 7, 1), bounds)
+	var art_bounds := _fit_texture_preserving_aspect(_card_texture, bounds.grow(-3.0))
+	draw_texture_rect(_card_texture, art_bounds, false)
+
+	# Selection and playability stay outside the face instead of tinting its artwork.
+	var highlight: Color = Color.TRANSPARENT
+	if winning_card or selected or recently_played:
+		highlight = Color("ffd45a")
+	elif playable_hint and not pending:
+		highlight = Color("55d98b")
+	if highlight.a > 0.0:
+		draw_style_box(_box(Color.TRANSPARENT, highlight, 7, 2), bounds.grow(2.0))
+	if pending:
+		draw_style_box(_box(Color(0.02, 0.04, 0.05, 0.58), Color.TRANSPARENT, 7), bounds)
 
 func _draw_caxeta_texture_card() -> void:
 	# Caxeta's PNG is the card itself. Only reserve enough room for a quiet shadow;

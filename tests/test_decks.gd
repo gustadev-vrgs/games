@@ -5,7 +5,7 @@ func run(t:TestHelpers)->void:
 	t.equal(truco.size(),40,"Truco tem 40");t.equal(caxeta.size(),104,"Caxeta tem 104");t.equal(uno.size(),108,"Uno tem 108")
 	t.check(DeckBuilder.validate_unique_uids(truco),"UID Truco");t.check(DeckBuilder.validate_unique_uids(caxeta),"UID Caxeta");t.check(DeckBuilder.validate_unique_uids(uno),"UID Uno")
 	for suit in DeckBuilder.TRUCO_SUITS:t.equal(truco.filter(func(c:Dictionary)->bool:return c.suit==suit).size(),10,"10 por naipe espanhol")
-	t.equal(TrucoSpanishCardTextures.validate_catalog().size(), 0, "catálogo espanhol completo")
+	t.equal(TrucoSpanishCardTextures.validate_catalog().size(), 0, "catálogo customizado do Truco completo")
 	t.equal(CaxetaCardTextures.validate_catalog().size(), 0, "catálogo Caxeta completo")
 	for card: Dictionary in caxeta:
 		var path: String = CaxetaCardTextures.face_path(String(card.rank), String(card.suit))
@@ -20,8 +20,9 @@ func run(t:TestHelpers)->void:
 	t.equal(CaxetaCardTextures.load_face("INVALID", "missing"), null, "textura ausente usa fallback")
 	for card: Dictionary in truco:
 		var path: String = TrucoSpanishCardTextures.face_path(String(card.rank), String(card.suit))
-		t.check(ResourceLoader.exists(path), "frente espanhola existe: " + path)
-		t.check(load(path) is Texture2D, "frente espanhola carrega como Texture2D")
+		t.check(ResourceLoader.exists(path), "frente customizada do Truco existe: " + path)
+		t.check(TrucoSpanishCardTextures.load_face(String(card.rank), String(card.suit)) is Texture2D, "frente customizada do Truco carrega como Texture2D")
+		t.check(TrucoSpanishCardTextures.load_face(String(card.rank), String(card.suit)) == TrucoSpanishCardTextures.load_face(String(card.rank), String(card.suit)), "frente customizada reutiliza cache")
 	t.check(ResourceLoader.exists(TrucoSpanishCardTextures.BACK_PATH), "verso espanhol existe")
 	t.check(TrucoSpanishCardTextures.load_back() is Texture2D, "verso espanhol carrega como Texture2D")
 	t.equal(CardFormatter.card_name(CardData.make(1, "truco", "11", "copas")), "Cavalo de copas", "Truco localizado")
