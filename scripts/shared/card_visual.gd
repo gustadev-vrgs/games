@@ -21,8 +21,14 @@ const SUITS: Dictionary = {
 	"espadas": "♠",
 	"ouros": "♦",
 }
-const STANDARD_ART_INSET: float = 4.0
 const CAXETA_TEXTURE_FALLBACK_SIZE := Vector2(500.0, 726.0)
+const HAND_CARD_SIZE := Vector2(90.0, 131.0)
+const TABLE_CARD_SIZE := Vector2(78.0, 113.0)
+const OPPONENT_CARD_SIZE := Vector2(46.0, 67.0)
+const HISTORY_CARD_SIZE := Vector2(48.0, 70.0)
+const HAND_TOP_RESERVE: float = 17.0
+const CARD_SIDE_RESERVE: float = 4.0
+const CARD_BOTTOM_RESERVE: float = 6.0
 
 var card_uid: int = -1
 var card_data: Dictionary = {}
@@ -75,17 +81,30 @@ func configure(card: Dictionary, up: bool = true, mode: DisplayMode = DisplayMod
 	_refresh()
 
 func _apply_display_size() -> void:
-	var is_caxeta: bool = String(card_data.get("game_id", "")) == "caxeta"
+	var card_size: Vector2 = _display_card_size()
+	var top_reserve: float = HAND_TOP_RESERVE if display_mode == DisplayMode.HAND else 3.0
+	match display_mode:
+		DisplayMode.OPPONENT_BACK, DisplayMode.HISTORY_MINI:
+			custom_minimum_size = card_size + Vector2(CARD_SIDE_RESERVE * 2.0, CARD_BOTTOM_RESERVE + 3.0)
+		_:
+			custom_minimum_size = card_size + Vector2(CARD_SIDE_RESERVE * 2.0, top_reserve + CARD_BOTTOM_RESERVE)
+	pivot_offset = Vector2(custom_minimum_size.x * 0.5, top_reserve + card_size.y)
+
+func _display_card_size() -> Vector2:
 	match display_mode:
 		DisplayMode.HAND:
-			custom_minimum_size = Vector2(90.0, 131.0) if is_caxeta else Vector2(88.0, 126.0)
-		DisplayMode.TABLE, DisplayMode.SPANISH_DECK, DisplayMode.FACE_DOWN_PLAY:
-			custom_minimum_size = Vector2(82.0, 119.0) if is_caxeta and display_mode == DisplayMode.TABLE else Vector2(76.0, 108.0)
+			return HAND_CARD_SIZE
 		DisplayMode.OPPONENT_BACK:
-			custom_minimum_size = Vector2(46.0, 67.0) if is_caxeta else Vector2(52.0, 74.0)
+			return OPPONENT_CARD_SIZE
 		DisplayMode.HISTORY_MINI:
-			custom_minimum_size = Vector2(50.0, 70.0)
-	pivot_offset = Vector2(custom_minimum_size.x * 0.5, custom_minimum_size.y - 8.0)
+			return HISTORY_CARD_SIZE
+		_:
+			return TABLE_CARD_SIZE
+
+func _card_bounds() -> Rect2:
+	var card_size: Vector2 = _display_card_size()
+	var top_reserve: float = HAND_TOP_RESERVE if display_mode == DisplayMode.HAND else 3.0
+	return Rect2(Vector2((size.x - card_size.x) * 0.5, top_reserve - _visual_lift), card_size)
 
 func set_state(new_selected: bool, new_interactable: bool, new_playable_hint: bool, new_pending: bool) -> void:
 	var animate: bool = selected != new_selected
@@ -115,15 +134,10 @@ func _draw() -> void:
 		_draw_caxeta_texture_card()
 		return
 	if not face_up and String(card_data.get("game_id", "")) == "caxeta":
-		var back_area := Rect2(Vector2(2.0, 1.0 - _visual_lift), Vector2(maxf(1.0, size.x - 7.0), maxf(1.0, size.y - 6.0)))
+		var back_area := _card_bounds()
 		_draw_caxeta_back(_fit_texture_preserving_aspect(null, back_area))
 		return
-	# Always fit a 5:7 rectangle inside the allocated control. Containers may grow,
-	# but the card itself must never inherit that distortion.
-	var available: Vector2 = Vector2(maxf(1.0, size.x - 8.0), maxf(1.0, size.y - 8.0))
-	var card_size: Vector2 = Vector2(minf(available.x, available.y * 5.0 / 7.0), 0.0)
-	card_size.y = card_size.x * 7.0 / 5.0
-	var bounds: Rect2 = Rect2(Vector2((size.x - card_size.x) * 0.5, (size.y - card_size.y) * 0.5 - _visual_lift), card_size)
+	var bounds: Rect2 = _card_bounds()
 	var shadow: Rect2 = Rect2(bounds.position + Vector2(3.0, 4.0), bounds.size)
 	draw_style_box(_box(Color(0.0, 0.0, 0.0, 0.35), Color.TRANSPARENT, 12), shadow)
 	var background: Color = _background_color()
@@ -132,11 +146,16 @@ func _draw() -> void:
 		border = Color("55d98b")
 	draw_style_box(_box(background, border, 12, 5 if winning_card else (4 if selected else 3)), bounds)
 	if is_instance_valid(_card_texture):
-		var art_bounds: Rect2 = bounds.grow(-STANDARD_ART_INSET)
+		# Spanish artwork remains the card face; interaction treatments stay outside it.
+		var art_bounds: Rect2 = _fit_texture_rect(_card_texture, bounds.grow(-1.0))
 		draw_texture_rect(_card_texture, art_bounds, false)
-		draw_style_box(_box(Color.TRANSPARENT, Color("8A6A2D"), 9, 2), art_bounds)
-		if face_up and String(card_data.get("game_id", "")) == "truco" and display_mode != DisplayMode.HISTORY_MINI:
-			_draw_spanish_corners(bounds)
+		var texture_highlight: Color = Color.TRANSPARENT
+		if winning_card or selected or recently_played:
+			texture_highlight = Color("ffd45a")
+		elif playable_hint and not pending:
+			texture_highlight = Color("55d98b")
+		if texture_highlight.a > 0.0:
+			draw_style_box(_box(Color.TRANSPARENT, texture_highlight, 12, 2), bounds.grow(2.0))
 		if pending:
 			draw_style_box(_box(Color(0.02, 0.04, 0.05, 0.58), Color.TRANSPARENT, 12), bounds)
 		return
@@ -159,7 +178,7 @@ func _is_caxeta_face_texture() -> bool:
 func _draw_caxeta_texture_card() -> void:
 	# Caxeta's PNG is the card itself. Only reserve enough room for a quiet shadow;
 	# never place the artwork inside the shared decorative card frame.
-	var area := Rect2(Vector2(2.0, 1.0 - _visual_lift), Vector2(maxf(1.0, size.x - 7.0), maxf(1.0, size.y - 6.0)))
+	var area := _card_bounds()
 	var texture_bounds := _fit_texture_preserving_aspect(_card_texture, area)
 	var shadow_bounds := Rect2(texture_bounds.position + Vector2(2.0, 3.0), texture_bounds.size)
 	draw_style_box(_box(Color(0.0, 0.0, 0.0, 0.22), Color.TRANSPARENT, 6), shadow_bounds)
@@ -331,7 +350,7 @@ func _draw_centered(value: String, font_size: int, color: Color, bounds: Rect2) 
 
 func _refresh() -> void:
 	disabled = not interactable or pending
-	modulate = Color(0.62, 0.66, 0.68) if disabled and display_mode == DisplayMode.HAND else Color.WHITE
+	modulate = Color(0.62, 0.66, 0.68) if disabled and not pending and display_mode == DisplayMode.HAND else Color.WHITE
 	queue_redraw()
 
 func _animate_transform() -> void:
