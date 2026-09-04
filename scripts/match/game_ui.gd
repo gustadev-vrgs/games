@@ -29,7 +29,7 @@ var _pending_timer: Timer
 var _leave_dialog: ConfirmationDialog
 
 @onready var hand: HBoxContainer = %Hand
-@onready var opponents: HFlowContainer = %Opponents
+@onready var opponents: HBoxContainer = %Opponents
 @onready var table_cards: HBoxContainer = %TableCards
 
 func _ready() -> void:
@@ -146,7 +146,10 @@ func _render_opponents() -> void:
 		var panel: VBoxContainer = VBoxContainer.new()
 		panel.alignment = BoxContainer.ALIGNMENT_CENTER
 		panel.add_theme_constant_override("separation", 6)
-		panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		# Every opponent owns an equal-width column.  This prevents long names or
+		# multiple hands from being concatenated into one unbounded row.
+		panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		panel.size_flags_stretch_ratio = 1.0
 		var name_label: Label = Label.new()
 		var backs: HBoxContainer = HBoxContainer.new()
 		backs.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -156,6 +159,8 @@ func _render_opponents() -> void:
 		name_label.text = "%s · assento %d · %s" % [String(player.get("display_name", "Jogador")), int(player.get("seat", 0)) + 1, CardFormatter.cards(count)]
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		name_label.tooltip_text = name_label.text
 		name_label.add_theme_color_override("font_color", HubTheme.MUTED)
 		panel.add_child(name_label)
 		for index: int in mini(count, 5):

@@ -1,7 +1,18 @@
 class_name TestTrainingMode
 extends RefCounted
 
+func _training_configuration_validation(t: TestHelpers) -> void:
+	t.check(not TrainingSession.configuration_valid("", 2, {}), "treino exige jogo selecionado")
+	t.check(TrainingSession.configuration_valid("uno", 2, {"game_id":"uno", "max_players":2}), "UNO aceita jogadores válidos")
+	t.check(not TrainingSession.configuration_valid("caxeta", 2, {"game_id":"caxeta"}), "Caxeta exige vidas")
+	t.check(TrainingSession.configuration_valid("caxeta", 5, {"game_id":"caxeta", "lives":10}), "Caxeta aceita jogadores e vidas")
+	t.check(not TrainingSession.configuration_valid("truco", 2, {"game_id":"truco"}), "Truco exige formato")
+	t.check(TrainingSession.configuration_valid("truco", 2, {"game_id":"truco", "truco_mode":"1v1"}), "Truco 1x1 exige dois jogadores")
+	t.check(TrainingSession.configuration_valid("truco", 4, {"game_id":"truco", "truco_mode":"2v2"}), "Truco 2x2 exige quatro jogadores")
+	t.check(not TrainingSession.configuration_valid("truco", 2, {"game_id":"truco", "truco_mode":"2v2"}), "Truco rejeita formato e jogadores inconsistentes")
+
 func run(t: TestHelpers) -> void:
+	_training_configuration_validation(t)
 	for count: int in [2, 8]: t.equal(TrainingSession.build_players("uno", count).size(), count, "treino Uno cria %d jogadores" % count)
 	for count: int in [2, 5]: t.equal(TrainingSession.build_players("caxeta", count).size(), count, "treino Caxeta cria %d jogadores" % count)
 	var one: Array[Dictionary] = TrainingSession.build_players("truco", 2, "1v1")

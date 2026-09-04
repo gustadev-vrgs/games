@@ -280,8 +280,10 @@ func _begin_match()->void:
 
 func start_training(game_id: String, player_count: int, settings: Dictionary) -> String:
 	clean_session()
-	if game_id not in GameConstants.GAMES or not GameConstants.player_count_valid(game_id, player_count, settings):
-		return "WRONG_PLAYER_COUNT"
+	# This is the second validation boundary after the setup screen.  Signals or
+	# callers cannot start a session by bypassing the disabled button.
+	if not TrainingSession.configuration_valid(game_id, player_count, settings):
+		return "INVALID_CONFIG"
 	is_training_mode = true
 	SessionState.is_training = true
 	SessionState.is_host = true

@@ -1,6 +1,21 @@
 class_name TrainingSession
 extends RefCounted
 
+static func configuration_valid(game_id: String, count: int, settings: Dictionary) -> bool:
+	if game_id not in GameConstants.GAMES:
+		return false
+	if not GameConstants.player_count_valid(game_id, count, settings):
+		return false
+	match game_id:
+		"uno":
+			return int(settings.get("max_players", 0)) == count
+		"caxeta":
+			return int(settings.get("lives", 0)) in [7, 10]
+		"truco":
+			var mode: String = String(settings.get("truco_mode", ""))
+			return (mode == "1v1" and count == 2) or (mode == "2v2" and count == 4)
+	return false
+
 static func build_players(game_id: String, count: int, truco_mode: String = "2v2") -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	var expected: int = 2 if truco_mode == "1v1" else 4
