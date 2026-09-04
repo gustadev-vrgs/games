@@ -12,13 +12,13 @@ func _ready() -> void:
 	%Discard.tooltip_text = "Confirma o descarte selecionado"
 
 func _render_specific_table() -> void:
-	_add_table_card({}, "Monte", false)
+	_add_table_card({"game_id": "caxeta"}, "Monte", false, CardVisual.DisplayMode.TABLE)
 	var discard_value: Variant = public_snapshot.get("discard_top", {})
 	if discard_value is Dictionary and not (discard_value as Dictionary).is_empty():
-		_add_table_card(discard_value as Dictionary, "Descarte")
+		_add_table_card(discard_value as Dictionary, "Descarte", true, CardVisual.DisplayMode.TABLE)
 	var turn_value: Variant = public_snapshot.get("turn_card", {})
 	if turn_value is Dictionary:
-		_add_table_card(turn_value as Dictionary, "Vira")
+		_add_table_card(turn_value as Dictionary, "Vira", true, CardVisual.DisplayMode.TABLE)
 	var wild_value: Variant = public_snapshot.get("wild", {})
 	var wild: Dictionary = wild_value as Dictionary if wild_value is Dictionary else {}
 	%GameDetail.text = "Curinga: %s   ·   Vidas: %s" % [CardFormatter.card_name(wild), _lives_text()]
