@@ -15,7 +15,7 @@ Use o endereço mostrado no lobby, normalmente `192.168.x.x` ou `10.x.x.x`. `127
 ## Regras
 
 - **Uno:** 7 cartas, descarte inicial numérico, compra voluntária, combinações de números iguais, apenas a carta comprada pode ser jogada após a compra, passar, +2/skip/reverse, wild/+4 atômicos, +4 apenas sem carta da cor ativa, declaração Uno e penalidade automática de duas; sem stacking de efeitos/desafio.
-- **Caxeta:** 9 cartas, compra e descarte, vira define o próximo rank/naipe como curinga, trincas e sequências sem sobreposição resolvidas por backtracking, batida de 9 perde 1 vida e batida de 10 com sequência 4+ perde 2; 7 ou 10 vidas.
+- **Caxeta:** 104 cartas (dois baralhos franceses tradicionais completos), 9 cartas por mão, compra e descarte; as duas cópias lógicas têm UIDs próprios e reutilizam as mesmas 52 texturas. A vira define o próximo rank do mesmo naipe como curinga, sem adicionar Jokers físicos ao baralho. Trincas e sequências sem sobreposição são resolvidas por backtracking; batida de 9 perde 1 vida e batida de 10 com sequência 4+ perde 2; 7 ou 10 vidas.
 - **Truco Paulista:** baralho espanhol de 40 cartas (4, 5, 6, 7, Valete, Cavalo, Rei, Ás, 2 e 3), vira/manilha com Paus mais forte, três turnos, cartas encobertas a partir do segundo, pedidos 3/6/9/12 e equipes opostas; vence em 12.
 
 ## Testes
@@ -26,7 +26,7 @@ godot --headless --path . --script res://tests/test_runner.gd
 godot --headless --path . --script res://tests/scene_smoke_runner.gd
 ```
 
-Os testes foram criados, mas **não foram executados neste ambiente**, que não possui Godot. Consulte [`LOCAL_VALIDATION.md`](LOCAL_VALIDATION.md) para smoke de rede, teste manual em dois PCs e exportação.
+Além das suítes automatizadas, valide o fluxo LAN em duas instâncias ou computadores e a exportação na plataforma de destino.
 
 ## Exportar Windows
 
@@ -42,11 +42,11 @@ O treino instancia o mesmo controlador autoritativo e as mesmas regras/mesas do 
 
 ## Assets e licença
 
-A interface usa apenas controles, texto e símbolos do sistema; não há asset externo ou áudio licenciado.
+A interface não inclui áudio licenciado. O Truco usa o baralho espanhol em SVG de `assets/cards/truco_spanish/`; a Caxeta usa 52 frentes PNG de `assets/cards/caxeta/` (mais dois Jokers reservados, não usados pela regra atual); e o Uno continua com arte procedural baseada em controles, cores, texto e símbolos.
 
 ## Interface e controles
 
-A apresentação usa mesa de feltro verde-petróleo, painéis translúcidos e detalhes dourados. O Truco carrega 40 SVGs espanhóis originais e um verso ornamental como `Texture2D`; a Caxeta mantém seus IDs tradicionais com nomes e faces localizados; o Uno usa cores vivas e textos em PT-BR. A mesa se reorganiza por `Container`, a mão possui rolagem horizontal e adversários mostram miniaturas de verso com a contagem real.
+A apresentação usa mesa de feltro verde-petróleo, painéis translúcidos e detalhes dourados. O Truco carrega 40 SVGs espanhóis originais e um verso ornamental como `Texture2D`; a Caxeta carrega suas frentes PNG preservando a proporção e mantém IDs e nomes localizados; o Uno usa cores vivas e textos em PT-BR. A mesa se reorganiza por `Container`, a mão possui rolagem horizontal e adversários mostram miniaturas de verso com a contagem real.
 
 Todas as mesas usam deliberadamente confirmação em dois passos: **primeiro clique na carta para selecioná-la; depois confirme no botão principal** (**Jogar carta** ou **Descartar carta**). A carta escolhida sobe, ganha contorno dourado e seu nome aparece no HUD. Clique nela outra vez ou pressione `Esc` para cancelar; `Enter` confirma somente quando o botão principal estiver habilitado. O contorno verde discreto é apenas uma dica de jogada legal. Durante a confirmação, novos cliques são ignorados e um timeout de oito segundos devolve os controles sem reenviar a ação.
 
@@ -54,9 +54,9 @@ Todas as mesas usam deliberadamente confirmação em dois passos: **primeiro cli
 - **Caxeta:** siga a instrução da rodada: (1) **Comprar do monte** ou **Comprar descarte**, (2) selecionar uma carta e (3) confirmar em **Descartar carta**. Não é possível descartar antes da compra. **Bater ao descartar** viaja na mesma ação atômica e **Bater com 10** valida a mão completa.
 - **Truco:** selecione uma carta e use **Jogar aberta** ou, do segundo turno em diante, **Esconder carta** (também ao clicar no monte). **Chamar Truco** oferece aceitar, correr e o próximo aumento até doze. A vira e o monte ficam à esquerda, as jogadas no centro e o **Histórico dos turnos** à direita.
 
-Host e cliente seguem a mesma confirmação assíncrona. Uma rejeição mostra uma explicação amigável e reabilita a mesa; perda de conexão também cancela qualquer espera. Para validar em LAN, use duas instâncias/computadores conforme `LOCAL_VALIDATION.md`.
+Host e cliente seguem a mesma confirmação assíncrona. Uma rejeição mostra uma explicação amigável e reabilita a mesa; perda de conexão também cancela qualquer espera. Para validar em LAN, use duas instâncias ou computadores na mesma rede.
 
-O menu inclui **Como jogar**, com abas para os três jogos e LAN. Nenhuma tela final apresenta snapshot, JSON ou dicionário interno. Consulte [`TEST_MATRIX.md`](TEST_MATRIX.md) e [`INITIAL_INVENTORY.md`](INITIAL_INVENTORY.md).
+O menu inclui **Como jogar**, com abas para os três jogos e LAN. Nenhuma tela final apresenta snapshot, JSON ou dicionário interno. As suítes automatizadas ficam em `tests/` e cobrem regras, invariantes, ações, lobby e treino.
 
 ## Fluxos multiplayer concluídos
 

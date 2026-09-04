@@ -59,10 +59,13 @@ func configure(card: Dictionary, up: bool = true, mode: DisplayMode = DisplayMod
 	face_up = up
 	display_mode = mode
 	_apply_display_size()
-	if String(card_data.get("game_id", "")) == "truco":
-		_card_texture = TrucoSpanishCardTextures.load_face(String(card_data.get("rank", "")), String(card_data.get("suit", ""))) if face_up else TrucoSpanishCardTextures.load_back()
-	else:
-		_card_texture = null
+	match String(card_data.get("game_id", "")):
+		"truco":
+			_card_texture = TrucoSpanishCardTextures.load_face(String(card_data.get("rank", "")), String(card_data.get("suit", ""))) if face_up else TrucoSpanishCardTextures.load_back()
+		"caxeta":
+			_card_texture = CaxetaCardTextures.load_face(String(card_data.get("rank", "")), String(card_data.get("suit", ""))) if face_up else null
+		_:
+			_card_texture = null
 	if display_mode == DisplayMode.HISTORY_MINI:
 		focus_mode = Control.FOCUS_NONE
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -122,6 +125,8 @@ func _draw() -> void:
 		# Preserve the illustrated Spanish-deck artwork while giving it a crisp,
 		# premium frame that remains readable on the table and in the player's hand.
 		var art_bounds: Rect2 = bounds.grow(-4.0)
+		if String(card_data.get("game_id", "")) == "caxeta":
+			art_bounds = _fit_texture_rect(_card_texture, art_bounds)
 		draw_texture_rect(_card_texture, art_bounds, false)
 		draw_style_box(_box(Color.TRANSPARENT, Color("8A6A2D"), 9, 2), art_bounds)
 		if face_up and String(card_data.get("game_id", "")) == "truco" and display_mode != DisplayMode.HISTORY_MINI:
@@ -141,6 +146,14 @@ func _draw() -> void:
 	if pending:
 		draw_style_box(_box(Color(0.02, 0.04, 0.05, 0.58), Color.TRANSPARENT, 12), bounds)
 		_draw_centered("…", 30, HubTheme.TEXT, bounds)
+
+func _fit_texture_rect(texture: Texture2D, bounds: Rect2) -> Rect2:
+	var texture_size: Vector2 = texture.get_size()
+	if texture_size.x <= 0.0 or texture_size.y <= 0.0:
+		return bounds
+	var scale_factor: float = minf(bounds.size.x / texture_size.x, bounds.size.y / texture_size.y)
+	var fitted_size: Vector2 = texture_size * scale_factor
+	return Rect2(bounds.get_center() - fitted_size * 0.5, fitted_size)
 
 func _draw_uno(bounds: Rect2) -> void:
 	var value: String = _uno_value()
