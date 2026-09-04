@@ -6,6 +6,18 @@ func run(t:TestHelpers)->void:
 	t.check(DeckBuilder.validate_unique_uids(truco),"UID Truco");t.check(DeckBuilder.validate_unique_uids(caxeta),"UID Caxeta");t.check(DeckBuilder.validate_unique_uids(uno),"UID Uno")
 	for suit in DeckBuilder.TRUCO_SUITS:t.equal(truco.filter(func(c:Dictionary)->bool:return c.suit==suit).size(),10,"10 por naipe espanhol")
 	t.equal(TrucoSpanishCardTextures.validate_catalog().size(), 0, "catálogo espanhol completo")
+	t.equal(CaxetaCardTextures.validate_catalog().size(), 0, "catálogo Caxeta completo")
+	for card: Dictionary in caxeta:
+		var path: String = CaxetaCardTextures.face_path(String(card.rank), String(card.suit))
+		t.check(ResourceLoader.exists(path), "frente Caxeta existe: " + path)
+		t.check(CaxetaCardTextures.load_face(String(card.rank), String(card.suit)) is Texture2D, "frente Caxeta carrega como Texture2D")
+	var first_copy: Dictionary = caxeta[0]
+	var second_copy: Dictionary = caxeta[52]
+	t.equal(first_copy.rank, second_copy.rank, "cópias mantêm o mesmo rank")
+	t.equal(first_copy.suit, second_copy.suit, "cópias mantêm o mesmo naipe")
+	t.check(first_copy.uid != second_copy.uid, "cópias da Caxeta têm UIDs distintos")
+	t.check(CaxetaCardTextures.load_face(String(first_copy.rank), String(first_copy.suit)) == CaxetaCardTextures.load_face(String(second_copy.rank), String(second_copy.suit)), "cópias reutilizam a textura em cache")
+	t.equal(CaxetaCardTextures.load_face("INVALID", "missing"), null, "textura ausente usa fallback")
 	for card: Dictionary in truco:
 		var path: String = TrucoSpanishCardTextures.face_path(String(card.rank), String(card.suit))
 		t.check(ResourceLoader.exists(path), "frente espanhola existe: " + path)
