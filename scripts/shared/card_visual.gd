@@ -21,6 +21,8 @@ const SUITS: Dictionary = {
 	"espadas": "♠",
 	"ouros": "♦",
 }
+const CAXETA_ART_INSET: float = 9.0
+const STANDARD_ART_INSET: float = 4.0
 
 var card_uid: int = -1
 var card_data: Dictionary = {}
@@ -79,7 +81,7 @@ func _apply_display_size() -> void:
 		DisplayMode.TABLE, DisplayMode.SPANISH_DECK, DisplayMode.FACE_DOWN_PLAY:
 			custom_minimum_size = Vector2(76.0, 108.0)
 		DisplayMode.OPPONENT_BACK:
-			custom_minimum_size = Vector2(38.0, 54.0)
+			custom_minimum_size = Vector2(52.0, 74.0)
 		DisplayMode.HISTORY_MINI:
 			custom_minimum_size = Vector2(50.0, 70.0)
 	pivot_offset = Vector2(custom_minimum_size.x * 0.5, custom_minimum_size.y - 8.0)
@@ -122,11 +124,9 @@ func _draw() -> void:
 		border = Color("55d98b")
 	draw_style_box(_box(background, border, 12, 5 if winning_card else (4 if selected else 3)), bounds)
 	if is_instance_valid(_card_texture):
-		# Preserve the illustrated Spanish-deck artwork while giving it a crisp,
-		# premium frame that remains readable on the table and in the player's hand.
-		var art_bounds: Rect2 = bounds.grow(-4.0)
+		var art_bounds: Rect2 = bounds.grow(-STANDARD_ART_INSET)
 		if String(card_data.get("game_id", "")) == "caxeta":
-			art_bounds = _fit_texture_rect(_card_texture, art_bounds)
+			art_bounds = _caxeta_art_rect(_card_texture, bounds)
 		draw_texture_rect(_card_texture, art_bounds, false)
 		draw_style_box(_box(Color.TRANSPARENT, Color("8A6A2D"), 9, 2), art_bounds)
 		if face_up and String(card_data.get("game_id", "")) == "truco" and display_mode != DisplayMode.HISTORY_MINI:
@@ -146,6 +146,11 @@ func _draw() -> void:
 	if pending:
 		draw_style_box(_box(Color(0.02, 0.04, 0.05, 0.58), Color.TRANSPARENT, 12), bounds)
 		_draw_centered("…", 30, HubTheme.TEXT, bounds)
+
+func _caxeta_art_rect(texture: Texture2D, bounds: Rect2) -> Rect2:
+	# The PNG already contains its own white card margin. A second, deliberate
+	# inset keeps its corner indices clear of the interactive frame and highlights.
+	return _fit_texture_rect(texture, bounds.grow(-CAXETA_ART_INSET))
 
 func _fit_texture_rect(texture: Texture2D, bounds: Rect2) -> Rect2:
 	var texture_size: Vector2 = texture.get_size()
@@ -208,12 +213,15 @@ func _draw_spanish_corners(bounds: Rect2) -> void:
 	_draw_text(short_rank, badge.position + Vector2(5.0, 16.0), 12, ink)
 
 func _draw_back(bounds: Rect2) -> void:
-	var inner: Rect2 = bounds.grow(-8.0)
+	var inset: float = 6.0 if display_mode == DisplayMode.OPPONENT_BACK else 8.0
+	var inner: Rect2 = bounds.grow(-inset)
 	draw_style_box(_box(Color("173d50"), Color("d8b45b"), 8, 2), inner)
-	for y_value in range(int(inner.position.y) + 7, int(inner.end.y), 12):
-		for x_value in range(int(inner.position.x) + 7, int(inner.end.x), 12):
-			draw_circle(Vector2(x_value, y_value), 2.2, Color(0.85, 0.7, 0.35, 0.72))
-	_draw_centered("TRUCO" if display_mode in [DisplayMode.SPANISH_DECK, DisplayMode.FACE_DOWN_PLAY, DisplayMode.HISTORY_MINI] else "HC", 13, Color("f1d783"), bounds)
+	var pattern_step: int = 10 if display_mode == DisplayMode.OPPONENT_BACK else 12
+	for y_value in range(int(inner.position.y) + 6, int(inner.end.y), pattern_step):
+		for x_value in range(int(inner.position.x) + 6, int(inner.end.x), pattern_step):
+			draw_circle(Vector2(x_value, y_value), 1.8 if display_mode == DisplayMode.OPPONENT_BACK else 2.2, Color(0.85, 0.7, 0.35, 0.72))
+	var back_label_size: int = 11 if display_mode == DisplayMode.OPPONENT_BACK else 13
+	_draw_centered("TRUCO" if display_mode in [DisplayMode.SPANISH_DECK, DisplayMode.FACE_DOWN_PLAY, DisplayMode.HISTORY_MINI] else "HC", back_label_size, Color("f1d783"), bounds)
 
 func _background_color() -> Color:
 	if not face_up:
