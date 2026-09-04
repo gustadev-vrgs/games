@@ -127,18 +127,20 @@ offset_bottom = -8.0
 layout_mode = 2
 
 [node name="Table" type="PanelContainer" parent="Margin/Main"]
-custom_minimum_size = Vector2(0, 190)
+custom_minimum_size = Vector2(0, 160)
 layout_mode = 2
 size_flags_vertical = 3
-[node name="Center" type="VBoxContainer" parent="Margin/Main/Table"]
+[node name="Center" type="HBoxContainer" parent="Margin/Main/Table"]
 layout_mode = 2
 alignment = 1
+theme_override_constants/separation = 18
 [node name="GameDetail" type="Label" parent="Margin/Main/Table/Center"]
 unique_name_in_owner = true
 layout_mode = 2
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 19
 text = "Preparando a mesa…"
+vertical_alignment = 1
 [node name="TableCards" type="HBoxContainer" parent="Margin/Main/Table/Center"]
 unique_name_in_owner = true
 layout_mode = 2
