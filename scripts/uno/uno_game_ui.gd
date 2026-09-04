@@ -16,9 +16,7 @@ func _ready() -> void:
 	%Play.custom_minimum_size = Vector2(170.0, 48.0)
 	%Play.tooltip_text = "Confirma a carta selecionada"
 	%Draw.tooltip_text = "Compra uma carta do monte"
-	%DrawPile.custom_minimum_size = Vector2(184.0, 44.0)
 	%DrawPile.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	HubTheme.style_action(%DrawPile, HubTheme.BLUE)
 	%Pass.tooltip_text = "Encerra o turno depois da compra"
 	_create_color_popup()
 	_create_uno_warning()
@@ -32,7 +30,6 @@ func _render_specific_table() -> void:
 	var active_color: String = String(public_snapshot.get("active_color", "—"))
 	%ActiveColor.text = "● Cor atual: %s" % CardFormatter.uno_color(active_color).to_upper()
 	%ActiveColor.modulate = CardVisual.UNO_COLORS.get(active_color, Color.WHITE)
-	%DrawPile.text = "Comprar uma carta"
 	var last_play: Dictionary = public_snapshot.get("last_play", {}) as Dictionary
 	if not last_play.is_empty() and not String(last_play.get("chosen_color", "")).is_empty():
 		_show_message("%s jogou um Curinga e escolheu %s." % [_player_name(int(last_play.get("peer_id", -1))), CardFormatter.uno_color(String(last_play.get("chosen_color", "")))])
@@ -115,14 +112,14 @@ func _update_actions() -> void:
 	%Play.disabled = not legal or pending_action != -1
 	%Play.text = "JOGAR %d CARTAS" % selected_uids.size() if selected_uids.size() > 1 else "JOGAR CARTA"
 	%Draw.disabled = not local_turn or phase != 1 or pending_action != -1
-	%DrawPile.disabled = %Draw.disabled or not bool(public_snapshot.get("can_draw", false))
+	%DrawPile.set_available(not %Draw.disabled and bool(public_snapshot.get("can_draw", false)))
 	%Pass.disabled = not local_turn or phase != 2 or pending_action != -1
 	%DeclareUno.visible = true
 	%DeclareUno.disabled = %Play.disabled
 	%DeclareUno.text = "UNO DECLARADO ✓" if _uno_declared else "GRITAR UNO!"
 	%Draw.visible = true
 	%Pass.visible = true
-	%DrawPile.modulate = Color(1.12, 1.12, 0.72) if local_turn and phase == 1 and not _has_playable_card() else Color.WHITE
+	%DrawPile.set_emphasized(local_turn and phase == 1 and not _has_playable_card())
 	if pending_action == -1:
 		if not local_turn:
 			_show_message("Não é sua vez.")

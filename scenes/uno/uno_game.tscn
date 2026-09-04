@@ -1,6 +1,7 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource path="res://scripts/uno/uno_game_ui.gd" type="Script" id="1"]
+[ext_resource path="res://scripts/uno/uno_draw_pile.gd" type="Script" id="2_draw_pile"]
 
 [sub_resource type="StyleBoxFlat" id="felt"]
 bg_color = Color(0.035, 0.18, 0.18, 1)
@@ -152,12 +153,21 @@ vertical_alignment = 1
 unique_name_in_owner = true
 layout_mode = 2
 alignment = 1
-[node name="DrawPile" type="Button" parent="Margin/Main/Table/Center"]
+[node name="DrawPileGroup" type="VBoxContainer" parent="Margin/Main/Table/Center"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 0
+[node name="DrawPileLabel" type="Label" parent="Margin/Main/Table/Center/DrawPileGroup"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.718, 0.796, 0.78, 1)
+theme_override_font_sizes/font_size = 14
+text = "Monte"
+horizontal_alignment = 1
+[node name="DrawPile" type="Button" parent="Margin/Main/Table/Center/DrawPileGroup"]
 unique_name_in_owner = true
 layout_mode = 2
-custom_minimum_size = Vector2(190, 42)
-text = "Comprar uma carta"
-tooltip_text = "Comprar uma carta"
+script = ExtResource("2_draw_pile")
 
 [node name="Banner" type="Label" parent="Margin/Main"]
 unique_name_in_owner = true
