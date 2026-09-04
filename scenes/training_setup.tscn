@@ -64,13 +64,15 @@ text = "JOGO"
 [node name="Game" type="OptionButton" parent="Margin/Center/Panel/Content/GameSection/Rows"]
 unique_name_in_owner = true
 layout_mode = 2
-item_count = 3
-popup/item_0/text = "🔵 Uno"
+item_count = 4
+popup/item_0/text = "Selecione um jogo"
 popup/item_0/id = 0
-popup/item_1/text = "🟢 Caxeta"
+popup/item_1/text = "🔵 Uno"
 popup/item_1/id = 1
-popup/item_2/text = "🟣 Truco Paulista"
+popup/item_2/text = "🟢 Caxeta"
 popup/item_2/id = 2
+popup/item_3/text = "🟣 Truco Paulista"
+popup/item_3/id = 3
 [node name="OptionsSection" type="PanelContainer" parent="Margin/Center/Panel/Content"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -93,11 +95,13 @@ text = "VIDAS"
 [node name="CaxetaLives" type="OptionButton" parent="Margin/Center/Panel/Content/OptionsSection/Rows"]
 unique_name_in_owner = true
 layout_mode = 2
-item_count = 2
-popup/item_0/text = "7 vidas"
+item_count = 3
+popup/item_0/text = "Selecione as vidas"
 popup/item_0/id = 0
-popup/item_1/text = "10 vidas"
+popup/item_1/text = "7 vidas"
 popup/item_1/id = 1
+popup/item_2/text = "10 vidas"
+popup/item_2/id = 2
 [node name="TrucoLabel" type="Label" parent="Margin/Center/Panel/Content/OptionsSection/Rows"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -105,17 +109,20 @@ text = "FORMATO"
 [node name="TrucoMode" type="OptionButton" parent="Margin/Center/Panel/Content/OptionsSection/Rows"]
 unique_name_in_owner = true
 layout_mode = 2
-item_count = 2
-popup/item_0/text = "1 contra 1 (2 jogadores)"
+item_count = 3
+popup/item_0/text = "Selecione o formato"
 popup/item_0/id = 0
-popup/item_1/text = "Dupla contra dupla (4 jogadores)"
+popup/item_1/text = "1 contra 1 (2 jogadores)"
 popup/item_1/id = 1
+popup/item_2/text = "Dupla contra dupla (4 jogadores)"
+popup/item_2/id = 2
 [node name="Start" type="Button" parent="Margin/Center/Panel/Content"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(240, 46)
 layout_mode = 2
 size_flags_horizontal = 4
 text = "INICIAR TREINO"
+disabled = true
 [node name="Status" type="Label" parent="Margin/Center/Panel/Content"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 22)

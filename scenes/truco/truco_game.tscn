@@ -25,30 +25,29 @@ mouse_filter = 2
 [node name="HeaderHUD" type="CanvasLayer" parent="."]
 layer = 100
 
-[node name="Header" type="PanelContainer" parent="HeaderHUD"]
+[node name="TopRegions" type="VBoxContainer" parent="HeaderHUD"]
 offset_right = 0.0
-offset_bottom = 68.0
+offset_bottom = 190.0
 anchors_preset = 10
 anchor_right = 1.0
 grow_horizontal = 2
+theme_override_constants/separation = 0
 
-[node name="HeaderMargin" type="MarginContainer" parent="HeaderHUD/Header"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="Header" type="PanelContainer" parent="HeaderHUD/TopRegions"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+
+[node name="HeaderMargin" type="MarginContainer" parent="HeaderHUD/TopRegions/Header"]
+layout_mode = 2
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 10
 
-[node name="HeaderLayout" type="Control" parent="HeaderHUD/Header/HeaderMargin"]
+[node name="HeaderLayout" type="Control" parent="HeaderHUD/TopRegions/Header/HeaderMargin"]
 layout_mode = 2
 
-[node name="Title" type="Label" parent="HeaderHUD/Header/HeaderMargin/HeaderLayout"]
-unique_name_in_owner = true
+[node name="Center" type="CenterContainer" parent="HeaderHUD/TopRegions/Header/HeaderMargin/HeaderLayout"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -56,47 +55,63 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+
+[node name="Title" type="Label" parent="HeaderHUD/TopRegions/Header/HeaderMargin/HeaderLayout/Center"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
 theme_override_font_sizes/font_size = 27
 text = "TRUCO PAULISTA"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="LeftSlot" type="HBoxContainer" parent="HeaderHUD/Header/HeaderMargin/HeaderLayout"]
+[node name="Left" type="HBoxContainer" parent="HeaderHUD/TopRegions/Header/HeaderMargin/HeaderLayout"]
 layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_right = -900.0
+anchor_right = 0.333333
 grow_horizontal = 2
 
-[node name="Leave" type="Button" parent="HeaderHUD/Header/HeaderMargin/HeaderLayout/LeftSlot"]
+[node name="Leave" type="Button" parent="HeaderHUD/TopRegions/Header/HeaderMargin/HeaderLayout/Left"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(112, 42)
 layout_mode = 2
 text = "← SAIR"
 
-[node name="Indicators" type="HBoxContainer" parent="HeaderHUD/Header/HeaderMargin/HeaderLayout"]
+[node name="Right" type="HBoxContainer" parent="HeaderHUD/TopRegions/Header/HeaderMargin/HeaderLayout"]
 layout_mode = 1
-anchors_preset = 10
+anchor_left = 0.666667
 anchor_right = 1.0
-offset_left = 760.0
 grow_horizontal = 2
 alignment = 2
 
-[node name="Connection" type="Label" parent="HeaderHUD/Header/HeaderMargin/HeaderLayout/Indicators"]
+[node name="Connection" type="Label" parent="HeaderHUD/TopRegions/Header/HeaderMargin/HeaderLayout/Right"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "LAN"
 vertical_alignment = 1
-[node name="Phase" type="Label" parent="HeaderHUD/Header/HeaderMargin/HeaderLayout/Indicators"]
+[node name="Phase" type="Label" parent="HeaderHUD/TopRegions/Header/HeaderMargin/HeaderLayout/Right"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "PREPARANDO"
 vertical_alignment = 1
-[node name="Turn" type="Label" parent="HeaderHUD/Header/HeaderMargin/HeaderLayout/Indicators"]
+[node name="Turn" type="Label" parent="HeaderHUD/TopRegions/Header/HeaderMargin/HeaderLayout/Right"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "AGUARDANDO"
 vertical_alignment = 1
+
+[node name="OpponentBand" type="MarginContainer" parent="HeaderHUD/TopRegions"]
+custom_minimum_size = Vector2(0, 118)
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 4
+
+[node name="Opponents" type="HBoxContainer" parent="HeaderHUD/TopRegions/OpponentBand"]
+unique_name_in_owner = true
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 18
 
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -104,18 +119,12 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 18.0
-offset_top = 80.0
+offset_top = 198.0
 offset_right = -18.0
 offset_bottom = -8.0
 
 [node name="Main" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
-
-[node name="Opponents" type="HFlowContainer" parent="Margin/Main"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 100)
-layout_mode = 2
-alignment = 1
 
 [node name="Table" type="PanelContainer" parent="Margin/Main"]
 custom_minimum_size = Vector2(0, 140)
