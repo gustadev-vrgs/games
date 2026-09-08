@@ -2,6 +2,7 @@ class_name CardVisual
 extends Button
 
 signal card_clicked(card_uid: int)
+signal card_reorder_requested(source_uid: int, target_uid: int)
 
 enum DisplayMode { HAND, TABLE, OPPONENT_BACK, HISTORY_MINI, SPANISH_DECK, FACE_DOWN_PLAY }
 
@@ -47,6 +48,7 @@ var _visual_lift: float = 0.0:
 		queue_redraw()
 var _motion_tween: Tween
 var _card_texture: Texture2D
+var reordering_enabled: bool = false
 
 func _ready() -> void:
 	_apply_display_size()
@@ -115,6 +117,25 @@ func set_state(new_selected: bool, new_interactable: bool, new_playable_hint: bo
 	if animate:
 		_animate_transform()
 	_refresh()
+
+func enable_local_reordering(value: bool) -> void:
+	reordering_enabled = value
+
+func _get_drag_data(_at_position: Vector2) -> Variant:
+	if not reordering_enabled or pending or card_uid < 0:
+		return null
+	var preview: CardVisual = duplicate() as CardVisual
+	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	preview.modulate = Color(1.0, 1.0, 1.0, 0.82)
+	set_drag_preview(preview)
+	return {"kind": "caxeta_hand_card", "uid": card_uid}
+
+func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
+	return reordering_enabled and data is Dictionary and String((data as Dictionary).get("kind", "")) == "caxeta_hand_card" and int((data as Dictionary).get("uid", -1)) != card_uid
+
+func _drop_data(_at_position: Vector2, data: Variant) -> void:
+	if _can_drop_data(_at_position, data):
+		card_reorder_requested.emit(int((data as Dictionary).get("uid", -1)), card_uid)
 
 func set_recently_played(value: bool) -> void:
 	recently_played = value

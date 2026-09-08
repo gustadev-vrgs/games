@@ -191,4 +191,4 @@ unique_name_in_owner = true
 text = "Bater ao descartar"
 [node name="Knock" type="Button" parent="Margin/Main/Actions"]
 unique_name_in_owner = true
-text = "Bater com 10"
+text = "Bater com a mão"

@@ -15,6 +15,10 @@ static func build_caxeta() -> Array[Dictionary]:
 	for copy in 2:
 		for suit in SUITS:
 			for rank in CAXETA_RANKS: deck.append(CardData.make(uid,"caxeta",rank,suit,"","",copy)); uid += 1
+	# The two printed jokers are cards in their own right.  They deliberately use
+	# a rank identity instead of borrowing the rank/suit of a face-up card.
+	for joker_color in ["black", "red"]:
+		deck.append(CardData.make(uid, "caxeta", "JOKER", joker_color)); uid += 1
 	return deck
 static func build_uno() -> Array[Dictionary]:
 	var deck: Array[Dictionary] = []; var uid: int = 1

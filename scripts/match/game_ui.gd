@@ -139,7 +139,7 @@ func _on_private_snapshot(snapshot: Dictionary) -> void:
 	if not hand_value is Array:
 		_show_message("Não foi possível atualizar sua mão.")
 		return
-	for value: Variant in hand_value as Array:
+	for value: Variant in _ordered_hand_cards(hand_value as Array):
 		if not value is Dictionary:
 			continue
 		var card: Dictionary = (value as Dictionary).duplicate(true)
@@ -150,12 +150,19 @@ func _on_private_snapshot(snapshot: Dictionary) -> void:
 		visual.configure(card, true)
 		visual.set_state(false, true, true, pending_action != -1)
 		visual.card_clicked.connect(_select_card)
+		_configure_hand_visual(visual)
 	selected_uid = -1
 	_refresh_hand_states()
 	%HandCount.text = "%s na sua mão" % CardFormatter.cards(cards_by_uid.size())
 	_update_actions()
 	_render_header()
 	_render_opponents()
+
+func _ordered_hand_cards(snapshot_hand: Array) -> Array:
+	return snapshot_hand
+
+func _configure_hand_visual(_visual: CardVisual) -> void:
+	pass
 
 func _render_header() -> void:
 	var current_player: int = int(public_snapshot.get("current_player", -1))
