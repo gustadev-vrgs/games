@@ -12,6 +12,8 @@ const RANK_NAMES: Dictionary = {
 static var _cache: Dictionary = {}
 
 static func face_path(rank: String, suit: String) -> String:
+	if rank == "JOKER":
+		return "%s/%s_joker.png" % [ROOT, suit]
 	var file_rank: String = String(RANK_NAMES.get(rank, rank))
 	return "%s/%s_of_%s.png" % [ROOT, file_rank, suit]
 
@@ -39,4 +41,8 @@ static func validate_catalog() -> PackedStringArray:
 			var path: String = face_path(rank, suit)
 			if not ResourceLoader.exists(path):
 				missing.append(path)
+	for joker_color: String in ["black", "red"]:
+		var joker_path: String = face_path("JOKER", joker_color)
+		if not ResourceLoader.exists(joker_path):
+			missing.append(joker_path)
 	return missing

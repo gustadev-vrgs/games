@@ -23,6 +23,8 @@ static func card_name(card: Dictionary) -> String:
 	if String(card.get("game_id", "")) == "uno":
 		var action: String = String(card.get("action", ""))
 		return String(UNO_ACTIONS.get(action, card.get("rank", "Carta Uno")))
+	if String(card.get("game_id", "")) == "caxeta" and String(card.get("rank", "")) == "JOKER":
+		return "Coringa"
 	return "%s de %s" % [caxeta_rank(String(card.get("rank", ""))), caxeta_suit(String(card.get("suit", ""))).to_lower()]
 
 static func uno_color(color: String) -> String:

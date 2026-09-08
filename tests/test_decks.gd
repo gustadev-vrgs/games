@@ -2,7 +2,7 @@ class_name TestDecks
 extends RefCounted
 func run(t:TestHelpers)->void:
 	var truco:Array[Dictionary]=DeckBuilder.build_truco();var caxeta:Array[Dictionary]=DeckBuilder.build_caxeta();var uno:Array[Dictionary]=DeckBuilder.build_uno()
-	t.equal(truco.size(),40,"Truco tem 40");t.equal(caxeta.size(),104,"Caxeta tem 104");t.equal(uno.size(),108,"Uno tem 108")
+	t.equal(truco.size(),40,"Truco tem 40");t.equal(caxeta.size(),106,"Caxeta tem 106, incluindo dois coringas");t.equal(uno.size(),108,"Uno tem 108")
 	t.check(DeckBuilder.validate_unique_uids(truco),"UID Truco");t.check(DeckBuilder.validate_unique_uids(caxeta),"UID Caxeta");t.check(DeckBuilder.validate_unique_uids(uno),"UID Uno")
 	for suit in DeckBuilder.TRUCO_SUITS:t.equal(truco.filter(func(c:Dictionary)->bool:return c.suit==suit).size(),10,"10 por naipe espanhol")
 	t.equal(TrucoSpanishCardTextures.validate_catalog().size(), 0, "catálogo customizado do Truco completo")
@@ -11,6 +11,7 @@ func run(t:TestHelpers)->void:
 		var path: String = CaxetaCardTextures.face_path(String(card.rank), String(card.suit))
 		t.check(ResourceLoader.exists(path), "frente Caxeta existe: " + path)
 		t.check(CaxetaCardTextures.load_face(String(card.rank), String(card.suit)) is Texture2D, "frente Caxeta carrega como Texture2D")
+	t.equal(caxeta.filter(func(c: Dictionary) -> bool: return c.rank == "JOKER").size(), 2, "Caxeta tem coringas próprios")
 	var first_copy: Dictionary = caxeta[0]
 	var second_copy: Dictionary = caxeta[52]
 	t.equal(first_copy.rank, second_copy.rank, "cópias mantêm o mesmo rank")
