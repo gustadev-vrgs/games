@@ -20,7 +20,17 @@ var is_training_mode: bool = false
 var _training_private_snapshots: Dictionary = {}
 var _training_controlled_peer: int = -1
 func _ready()->void:
+	_connection_timer = _create_managed_timer(_on_connection_timeout)
+	_scene_timer = _create_managed_timer(_scene_ready_timeout)
+	_reveal_timer = _create_managed_timer(_on_reveal_timeout)
 	multiplayer.peer_connected.connect(_on_peer_connected);multiplayer.peer_disconnected.connect(_on_peer_disconnected);multiplayer.connected_to_server.connect(_on_connected);multiplayer.connection_failed.connect(_on_connection_failed);multiplayer.server_disconnected.connect(_on_server_disconnected)
+
+func _create_managed_timer(callback: Callable) -> Timer:
+	var timer := Timer.new()
+	timer.one_shot = true
+	timer.timeout.connect(callback)
+	add_child(timer)
+	return timer
 func create_server(nickname:String,game_id:String,settings:Dictionary,port:int)->String:
 	clean_session()
 	var player_name:String=GameConstants.sanitize_nickname(nickname)
@@ -41,9 +51,7 @@ func create_client(nickname:String,address:String,port:int)->String:
 	if player_name.is_empty() or address.strip_edges().is_empty() or address.length()>255 or not GameConstants.valid_port(port):return "INVALID_CONFIG"
 	SessionState.nickname=player_name;_peer=ENetMultiplayerPeer.new();var error:Error=_peer.create_client(address.strip_edges(),port)
 	if error!=OK:_peer=null;return "CLIENT_CREATE_FAILED"
-	multiplayer.multiplayer_peer=_peer;phase=SessionPhase.OFFLINE;_connection_timer=_timer(GameConstants.CONNECTION_TIMEOUT_SECONDS,_on_connection_timeout);return "OK"
-func _timer(seconds:float,callback:Callable)->Timer:
-	var timer:Timer=Timer.new();timer.one_shot=true;timer.wait_time=seconds;add_child(timer);timer.timeout.connect(callback);timer.start();return timer
+	multiplayer.multiplayer_peer=_peer;phase=SessionPhase.OFFLINE;_connection_timer.start(GameConstants.CONNECTION_TIMEOUT_SECONDS);return "OK"
 func _on_connected()->void:
 	_cancel_timer(_connection_timer);connection_status.emit("Conectado; registrando jogador...");register_player.rpc_id(1,GameConstants.PROTOCOL_VERSION,SessionState.nickname)
 func _on_connection_failed()->void:clean_session();connection_status.emit("Não foi possível conectar.")
@@ -220,7 +228,7 @@ func request_start()->String:
 	var validation: String = GameConstants.lobby_configuration_valid(String(config.get("game_id", "")), config, list)
 	if validation != "OK":
 		return validation
-	phase=SessionPhase.LOADING;match_id+=1;_ready_peers.clear();var screen:String=config.game_id;load_match.rpc(session_id,match_id,screen);_load_local_match(screen);_scene_timer=_timer(GameConstants.SCENE_READY_TIMEOUT_SECONDS,_scene_ready_timeout);return "OK"
+	phase=SessionPhase.LOADING;match_id+=1;_ready_peers.clear();var screen:String=config.game_id;load_match.rpc(session_id,match_id,screen);_load_local_match(screen);_scene_timer.start(GameConstants.SCENE_READY_TIMEOUT_SECONDS);return "OK"
 @rpc("authority","call_remote","reliable") func load_match(id:String,new_match_id:int,screen:String)->void:
 	if id!=session_id or screen not in GameConstants.GAMES:return
 	match_id=new_match_id;SessionState.match_id=match_id;SceneRouter.request_transition(screen)
@@ -405,7 +413,10 @@ func set_training_control_peer(peer_id: int) -> bool:
 func _schedule_reveal(version: int) -> void:
 	_cancel_timer(_reveal_timer)
 	_reveal_token = version
-	_reveal_timer = _timer(2.5, func() -> void: _advance_reveal(version))
+	_reveal_timer.start(2.5)
+
+func _on_reveal_timeout() -> void:
+	_advance_reveal(_reveal_token)
 
 func _advance_reveal(token: int) -> void:
 	if token != _reveal_token or phase != SessionPhase.MATCH_ACTIVE or state_version != token:
@@ -431,7 +442,7 @@ func _match_finished(result:Dictionary)->void:
 	SceneRouter.request_transition("results")
 func return_to_lobby()->void:
 	if not multiplayer.is_server():return
-	if is_instance_valid(_controller):_controller.queue_free()
+	_cancel_match_resources()
 	SessionState.reset_match();state_version=0;_action_cache.clear();phase=SessionPhase.LOBBY;return_lobby.rpc();SceneRouter.request_transition("lobby")
 @rpc("authority","call_remote","reliable") func return_lobby()->void:SessionState.reset_match();phase=SessionPhase.LOBBY;SceneRouter.request_transition("lobby")
 @rpc("authority", "call_remote", "reliable") func notify_return_to_lobby(reason: String) -> void:
@@ -510,7 +521,7 @@ func clean_session(preserve_leave_guard: bool = false)->void:
 		_is_leaving_session = false
 		_intentional_disconnect = false
 func _cancel_timer(timer:Timer)->void:
-	if is_instance_valid(timer):timer.stop();timer.queue_free()
+	timer.stop()
 func _reseat()->void:
 	var list:Array=players.values();list.sort_custom(func(a:Dictionary,b:Dictionary)->bool:return a.seat<b.seat)
 	for index in list.size():list[index].seat=index
