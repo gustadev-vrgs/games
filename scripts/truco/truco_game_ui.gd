@@ -5,6 +5,7 @@ const PHASE_WAITING: int = 2
 const PHASE_REVEAL: int = 3
 const VALUE_NAMES: Dictionary = {3:"TRUCO", 6:"SEIS", 9:"NOVE", 12:"DOZE"}
 var _face_down_dialog: ConfirmationDialog
+var _run_dialog: ConfirmationDialog
 
 func _ready() -> void:
 	super()
@@ -13,7 +14,7 @@ func _ready() -> void:
 	%FaceDownPile.pressed.connect(_confirm_face_down)
 	%Truco.pressed.connect(func() -> void: submit("REQUEST_TRUCO"))
 	%Accept.pressed.connect(func() -> void: submit("ACCEPT"))
-	%Run.pressed.connect(func() -> void: submit("RUN"))
+	%Run.pressed.connect(_confirm_run)
 	%Raise.pressed.connect(func() -> void: submit("RAISE"))
 	%Play.custom_minimum_size = Vector2(170.0, 48.0)
 	%FaceDown.custom_minimum_size = Vector2(190.0, 48.0)
@@ -26,6 +27,7 @@ func _ready() -> void:
 	%FaceDownPile.icon = TrucoSpanishCardTextures.load_back()
 	%FaceDownPile.expand_icon = true
 	_create_face_down_dialog()
+	_create_run_dialog()
 
 func _render_specific_table() -> void:
 	_clear_children(%ViraCards)
@@ -137,11 +139,12 @@ func _update_actions() -> void:
 	%Truco.disabled = phase != PHASE_PLAYING or not local_turn or next_value == 0 or int(public_snapshot.get("last_raise_team", -1)) == local_team or blocked
 	%Truco.tooltip_text = "Aguarde o resultado do turno." if phase == PHASE_REVEAL else "Aumentar o valor da mão"
 	%Accept.visible = waiting and responding
-	%Run.visible = waiting and responding
+	%Run.visible = (waiting and responding) or (phase == PHASE_PLAYING and local_turn)
 	%Raise.visible = waiting and responding and next_value > 0
 	%Accept.text = "Aceitar — vale %d" % int(public_snapshot.get("target_value", 0))
 	%Raise.text = "Pedir %s" % String(VALUE_NAMES.get(next_value, ""))
 	%Accept.disabled = blocked; %Run.disabled = blocked; %Raise.disabled = blocked
+	%Run.tooltip_text = "Conceder esta mão à equipe adversária"
 	%RequestPanel.visible = waiting
 	_update_responder_selector(waiting)
 	if waiting:
@@ -190,6 +193,19 @@ func _create_face_down_dialog() -> void:
 func _confirm_face_down() -> void:
 	if not %FaceDown.disabled:
 		_face_down_dialog.popup_centered(Vector2i(560, 230))
+
+func _create_run_dialog() -> void:
+	_run_dialog = ConfirmationDialog.new()
+	_run_dialog.title = "Correr da mão"
+	_run_dialog.dialog_text = "Correr desta mão e conceder o valor atual à equipe adversária?"
+	_run_dialog.ok_button_text = "Correr"
+	_run_dialog.cancel_button_text = "Cancelar"
+	_run_dialog.confirmed.connect(func() -> void: submit("RUN"))
+	add_child(_run_dialog)
+
+func _confirm_run() -> void:
+	if not %Run.disabled:
+		_run_dialog.popup_centered(Vector2i(520, 210))
 
 func _primary_action() -> BaseButton: return %Play
 func _valid_selection_phases() -> Array[int]: return [PHASE_PLAYING]

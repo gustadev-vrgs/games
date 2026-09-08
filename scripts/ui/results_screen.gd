@@ -1,5 +1,7 @@
 extends ScreenBase
 
+var _game_dialog: ConfirmationDialog
+
 func _ready() -> void:
 	super()
 	var snapshot: Dictionary = SessionState.public_state
@@ -9,14 +11,51 @@ func _ready() -> void:
 	if SessionState.is_training:
 		%Back.pressed.connect(NetworkManager.replay_training)
 	else:
-		%Back.pressed.connect(func() -> void: NetworkManager.return_to_lobby())
+		%Back.pressed.connect(_replay_match)
+	%ChangeGame.pressed.connect(_show_game_picker)
 	%Close.pressed.connect(_close_room)
-	%Back.visible = multiplayer.is_server() or SessionState.is_training
+	var is_host: bool = SessionState.is_host and multiplayer.is_server()
+	%Back.visible = is_host or SessionState.is_training
+	%ChangeGame.visible = is_host and not SessionState.is_training
 	%Back.text = "Jogar novamente"
-	%Back.tooltip_text = "Volta ao lobby com os mesmos participantes para iniciar outra partida."
+	%Back.tooltip_text = "Inicia outra partida com os participantes conectados."
 	%Close.visible = not SessionState.session_id.is_empty() or SessionState.is_training
 	%Close.text = "Voltar ao menu"
+	%Status.text = "Escolha o próximo passo para a sala." if is_host else "Aguardando o host decidir o próximo jogo..."
+	HubTheme.style_action(%ChangeGame, HubTheme.BLUE)
+	_create_game_dialog()
 	_animate_entrance()
+
+func _replay_match() -> void:
+	_show_start_result(NetworkManager.restart_match())
+
+func _create_game_dialog() -> void:
+	_game_dialog = ConfirmationDialog.new()
+	_game_dialog.title = "Escolha o próximo jogo"
+	_game_dialog.dialog_text = "O grupo permanecerá conectado na mesma sala."
+	_game_dialog.ok_button_text = "Cancelar"
+	_game_dialog.get_ok_button().pressed.connect(_game_dialog.hide)
+	for game: Dictionary in [{"id":"uno", "label":"UNO"}, {"id":"truco", "label":"Truco"}, {"id":"caxeta", "label":"Caxeta"}]:
+		var button: Button = _game_dialog.add_button(String(game.label), false, String(game.id))
+		button.pressed.connect(_choose_game.bind(String(game.id)))
+	add_child(_game_dialog)
+
+func _choose_game(game_id: String) -> void:
+	_game_dialog.hide()
+	_show_start_result(NetworkManager.change_game(game_id))
+
+func _show_game_picker() -> void:
+	if SessionState.is_host and multiplayer.is_server():
+		_game_dialog.popup_centered(Vector2i(540, 260))
+
+func _show_start_result(result: String) -> void:
+	if result != "OK":
+		var message: String = String({
+			"WRONG_PLAYER_COUNT":"não há jogadores suficientes para esse modo.",
+			"NOT_HOST":"somente o host pode decidir o próximo jogo.",
+			"INVALID_PHASE":"a decisão já foi processada.",
+		}.get(result, result))
+		%Status.text = "Não foi possível iniciar: %s" % message
 
 func _result_summary(snapshot: Dictionary) -> String:
 	var winner: int = int(snapshot.get("winner", -1))

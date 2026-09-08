@@ -15,6 +15,7 @@ const ERROR_MESSAGES: Dictionary = {
 	"INVALID_PHASE": "Essa ação não está disponível nesta fase.",
 	"INVALID_COLOR": "Escolha uma cor válida.",
 	"ILLEGAL_WILD_DRAW_FOUR": "O +4 só vale quando você não possui a cor ativa.",
+	"INVALID_UNO_DECLARATION": "Selecione a jogada que deixará exatamente uma carta antes de declarar UNO.",
 	"MUST_DRAW_FIRST": "Compre uma carta antes de continuar.",
 	"FACE_DOWN_FIRST_TRICK": "A carta só pode ser encoberta a partir do 2º turno.",
 	"INVALID_KNOCK": "Sua mão ainda não forma combinações válidas.",
