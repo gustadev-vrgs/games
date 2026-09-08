@@ -96,6 +96,11 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 text = "Jogar novamente"
+[node name="ChangeGame" type="Button" parent="Center/VictoryPanel/Margin/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Trocar de jogo"
 [node name="Close" type="Button" parent="Center/VictoryPanel/Margin/VBox"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)

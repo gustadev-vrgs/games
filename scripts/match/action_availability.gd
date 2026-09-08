@@ -11,7 +11,10 @@ static func uno_card_playable(snapshot: Dictionary, private_snapshot: Dictionary
 	if phase == 2 and int(card.get("uid", -1)) != int(private_snapshot.get("drawn_uid", -2)):
 		return false
 	var action: String = String(card.get("action", ""))
-	if action in ["wild", "wild_draw_four"]:
+	if action == "wild_draw_four":
+		var hand_value: Variant = private_snapshot.get("hand", [])
+		return hand_value is Array and UnoRules.can_play_wild_draw_four(hand_value as Array, int(card.get("uid", -1)), String(snapshot.get("active_color", "")))
+	if action == "wild":
 		return true
 	var top_value: Variant = snapshot.get("top_card", {})
 	var top: Dictionary = top_value as Dictionary if top_value is Dictionary else {}

@@ -126,7 +126,7 @@ func _sync_lobby()->void:
 	var normalized_players:Array[Dictionary]=_normalize_player_list(list)
 	if normalized_players.is_empty():
 		connection_status.emit("Lista de jogadores inválida.");clean_session();return
-	session_id=id;config=settings.duplicate(true);players.clear()
+	session_id=id;config=settings.duplicate(true);players.clear();SessionState.game_id=String(config.get("game_id", ""));SessionState.approved_config=config.duplicate(true)
 	for player:Dictionary in normalized_players:players[int(player.get("peer_id",-1))]=player
 	SessionState.players.assign(normalized_players);lobby_updated.emit(normalized_players)
 func _normalize_player_list(raw_players:Array)->Array[Dictionary]:
@@ -231,7 +231,7 @@ func request_start()->String:
 	phase=SessionPhase.LOADING;match_id+=1;_ready_peers.clear();var screen:String=config.game_id;load_match.rpc(session_id,match_id,screen);_load_local_match(screen);_scene_timer.start(GameConstants.SCENE_READY_TIMEOUT_SECONDS);return "OK"
 @rpc("authority","call_remote","reliable") func load_match(id:String,new_match_id:int,screen:String)->void:
 	if id!=session_id or screen not in GameConstants.GAMES:return
-	match_id=new_match_id;SessionState.match_id=match_id;SceneRouter.request_transition(screen)
+	phase=SessionPhase.LOADING;match_id=new_match_id;SessionState.match_id=match_id;SessionState.game_id=screen;SessionState.reset_match();SessionState.match_id=match_id;SceneRouter.request_transition(screen)
 func _load_local_match(screen:String)->void:SessionState.match_id=match_id;SceneRouter.request_transition(screen);await SceneRouter.transition_finished;client_scene_ready(match_id)
 func notify_scene_ready()->void:
 	if multiplayer.is_server():client_scene_ready(match_id)
@@ -450,6 +450,50 @@ func return_to_lobby()->void:
 	phase = SessionPhase.LOBBY
 	session_interrupted.emit(reason)
 	SceneRouter.request_transition("lobby")
+
+func restart_match() -> String:
+	if is_training_mode:
+		replay_training()
+		return "OK"
+	return _start_next_match(String(config.get("game_id", "")))
+
+func change_game(game_id: String) -> String:
+	return _start_next_match(game_id)
+
+func _start_next_match(game_id: String) -> String:
+	if not multiplayer.is_server(): return "NOT_HOST"
+	if phase != SessionPhase.MATCH_FINISHED: return "INVALID_PHASE"
+	if game_id not in GameConstants.GAMES: return "INVALID_CONFIG"
+	var player_count: int = players.size()
+	var next_config: Dictionary = {"game_id":game_id, "port":config.get("port", GameConstants.DEFAULT_PORT)}
+	match game_id:
+		"uno": next_config["max_players"] = maxi(player_count, 2)
+		"caxeta": next_config["lives"] = int(config.get("lives", 7))
+		"truco": next_config["truco_mode"] = "1v1" if player_count == 2 else "2v2"
+	if not GameConstants.player_count_valid(game_id, player_count, next_config):
+		return "WRONG_PLAYER_COUNT"
+	_cancel_match_resources()
+	SessionState.reset_match()
+	state_version = 0
+	_next_action_id = 1
+	_action_cache.clear()
+	config = next_config
+	var ordered: Array = players.values()
+	ordered.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a.seat) < int(b.seat))
+	for index: int in ordered.size():
+		var player: Dictionary = ordered[index]
+		player["ready"] = true
+		player["team"] = index % 2 if game_id == "truco" else -1
+	SessionState.game_id = game_id
+	SessionState.approved_config = config.duplicate(true)
+	_sync_lobby()
+	phase = SessionPhase.LOADING
+	match_id += 1
+	_ready_peers.clear()
+	load_match.rpc(session_id, match_id, game_id)
+	_load_local_match(game_id)
+	_scene_timer.start(GameConstants.SCENE_READY_TIMEOUT_SECONDS)
+	return "OK"
 func abort_match()->void:if multiplayer.is_server():return_to_lobby()
 func leave_room() -> void: leave_session()
 func close_room() -> void: leave_session()

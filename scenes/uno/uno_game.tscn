@@ -209,9 +209,10 @@ text = "Comprar"
 [node name="Pass" type="Button" parent="Margin/Main/Actions"]
 unique_name_in_owner = true
 text = "Passar"
-[node name="DeclareUno" type="CheckButton" parent="Margin/Main/Actions"]
+[node name="DeclareUno" type="Button" parent="Margin/Main/Actions"]
 unique_name_in_owner = true
-text = "Declarar Uno"
+custom_minimum_size = Vector2(104, 48)
+text = "UNO!"
 [node name="Color" type="OptionButton" parent="Margin/Main/Actions"]
 unique_name_in_owner = true
 item_count = 4
