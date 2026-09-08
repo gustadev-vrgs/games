@@ -140,7 +140,10 @@ func _selection_can_survive(uid: int) -> bool:
 	return int(public_snapshot.get("phase", -1)) != 2 or uid == int(private_snapshot.get("drawn_uid", -2))
 
 func _on_private_snapshot(snapshot: Dictionary) -> void:
-	var preserved_selection: Array[int] = selected_uids.duplicate() if _declaring_uno else []
+	var preserved_selection: Array[int] = []
+	if _declaring_uno:
+		for uid: int in selected_uids:
+			preserved_selection.append(uid)
 	if not _declaring_uno:
 		selected_uids.clear()
 	super(snapshot)
