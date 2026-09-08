@@ -1,5 +1,10 @@
 extends ScreenBase
 
+const ERROR_MESSAGES: Dictionary = {
+	"INVALID_CONFIG": "Confira as configurações e a porta da partida.",
+	"SERVER_CREATE_FAILED": "Não foi possível criar a partida. Verifique se a porta já está em uso.",
+}
+
 func _ready() -> void:
 	super()
 	%Create.pressed.connect(_create)
@@ -36,4 +41,4 @@ func _create() -> void:
 		SessionState.session_id = NetworkManager.session_id
 		SceneRouter.request_transition("lobby")
 	else:
-		show_status(result)
+		show_status(String(ERROR_MESSAGES.get(result, "Não foi possível criar a partida.")))
