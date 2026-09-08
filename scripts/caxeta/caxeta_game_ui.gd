@@ -4,7 +4,7 @@ var _local_hand_order: Array[int] = []
 
 func _ready() -> void:
 	super()
-	%DrawPile.pressed.connect(func() -> void: submit("DRAW_PILE"))
+	%DrawPile.pressed.connect(_draw_from_pile)
 	%DrawDiscard.pressed.connect(func() -> void: submit("DRAW_DISCARD"))
 	%Discard.pressed.connect(_discard)
 	%Knock.pressed.connect(func() -> void: submit("KNOCK"))
@@ -14,11 +14,27 @@ func _ready() -> void:
 	%Discard.tooltip_text = "Confirma o descarte selecionado"
 
 func _render_specific_table() -> void:
-	_add_table_card({"game_id": "caxeta"}, "Monte", false, CardVisual.DisplayMode.TABLE)
+	var pile_group: VBoxContainer = VBoxContainer.new()
+	var pile_label: Label = Label.new()
+	pile_label.text = "Monte"
+	pile_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pile_group.add_child(pile_label)
+	var pile: CardVisual = CARD_SCENE.instantiate() as CardVisual
+	pile_group.add_child(pile)
+	pile.configure({"game_id": "caxeta"}, false, CardVisual.DisplayMode.TABLE)
+	var pile_available: bool = ActionAvailability.is_local_turn(public_snapshot, SessionState.local_peer_id) and int(public_snapshot.get("phase", -1)) == 1 and pending_action == -1
+	pile.set_state(false, pile_available, pile_available, pending_action != -1)
+	pile.tooltip_text = %DrawPile.tooltip_text
+	pile.card_clicked.connect(func(_uid: int) -> void: _draw_from_pile())
+	table_cards.add_child(pile_group)
 	var discard_value: Variant = public_snapshot.get("discard_top", {})
 	if discard_value is Dictionary and not (discard_value as Dictionary).is_empty():
 		_add_table_card(discard_value as Dictionary, "Descarte", true, CardVisual.DisplayMode.TABLE)
 	%GameDetail.text = "Coringas próprios do baralho   ·   Vidas: %s" % _lives_text()
+
+func _draw_from_pile() -> void:
+	if not %DrawPile.disabled:
+		submit("DRAW_PILE")
 
 func _discard() -> void:
 	submit_selected("DISCARD", {"declare_knock": %KnockNormal.button_pressed})

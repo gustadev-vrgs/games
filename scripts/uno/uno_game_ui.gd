@@ -2,7 +2,7 @@ extends GameUI
 
 var _color_popup: PopupPanel
 var _uno_declared: bool = false
-var _uno_warning: ConfirmationDialog
+var _declaring_uno: bool = false
 var selected_uids: Array[int] = []
 
 func _ready() -> void:
@@ -12,6 +12,8 @@ func _ready() -> void:
 	%DrawPile.pressed.connect(func() -> void: submit("DRAW_ONE"))
 	%Pass.pressed.connect(func() -> void: submit("PASS"))
 	%DeclareUno.pressed.connect(_declare_uno)
+	%DeclareUno.custom_minimum_size = Vector2(104.0, 48.0)
+	HubTheme.style_action(%DeclareUno, HubTheme.WARNING)
 	%Color.visible = false
 	%Play.custom_minimum_size = Vector2(170.0, 48.0)
 	%Play.tooltip_text = "Confirma a carta selecionada"
@@ -19,7 +21,6 @@ func _ready() -> void:
 	%DrawPile.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	%Pass.tooltip_text = "Encerra o turno depois da compra"
 	_create_color_popup()
-	_create_uno_warning()
 
 func _render_specific_table() -> void:
 	var top_value: Variant = public_snapshot.get("top_card", {})
@@ -35,9 +36,6 @@ func _render_specific_table() -> void:
 		_show_message("%s jogou um Curinga e escolheu %s." % [_player_name(int(last_play.get("peer_id", -1))), CardFormatter.uno_color(String(last_play.get("chosen_color", "")))])
 
 func _play() -> void:
-	if cards_by_uid.size() - selected_uids.size() == 1 and not _uno_declared:
-		_uno_warning.popup_centered(Vector2i(570, 220))
-		return
 	_play_confirmed()
 
 func _play_confirmed() -> void:
@@ -57,20 +55,10 @@ func _submit_play(chosen_color: String) -> void:
 	submit("PLAY_CARDS", payload)
 
 func _declare_uno() -> void:
-	if cards_by_uid.size() - selected_uids.size() != 1 or selected_uids.is_empty():
+	if %DeclareUno.disabled or _declaring_uno:
 		return
-	_uno_declared = true
-	%DeclareUno.text = "UNO DECLARADO ✓"
-	_show_message("UNO declarado. Jogue sua penúltima carta!")
-
-func _create_uno_warning() -> void:
-	_uno_warning = ConfirmationDialog.new()
-	_uno_warning.title = "Declarar UNO"
-	_uno_warning.dialog_text = "Você ficará com uma carta sem declarar UNO e receberá a penalidade. Deseja continuar?"
-	_uno_warning.ok_button_text = "Jogar sem declarar"
-	_uno_warning.cancel_button_text = "Voltar e declarar UNO"
-	_uno_warning.confirmed.connect(_play_confirmed)
-	add_child(_uno_warning)
+	_declaring_uno = true
+	submit("DECLARE_UNO", {"card_uids": selected_uids.duplicate()})
 
 func _create_color_popup() -> void:
 	_color_popup = PopupPanel.new()
@@ -114,9 +102,11 @@ func _update_actions() -> void:
 	%Draw.disabled = not local_turn or phase != 1 or pending_action != -1
 	%DrawPile.set_available(not %Draw.disabled and bool(public_snapshot.get("can_draw", false)))
 	%Pass.disabled = not local_turn or phase != 2 or pending_action != -1
+	_uno_declared = int(public_snapshot.get("uno_declared_by", -1)) == SessionState.local_peer_id
 	%DeclareUno.visible = true
-	%DeclareUno.disabled = %Play.disabled
-	%DeclareUno.text = "UNO DECLARADO ✓" if _uno_declared else "GRITAR UNO!"
+	%DeclareUno.disabled = %Play.disabled or _uno_declared
+	%DeclareUno.text = "UNO ✓" if _uno_declared else "UNO!"
+	%DeclareUno.tooltip_text = "UNO já declarado" if _uno_declared else "Declare UNO antes de jogar e ficar com uma carta"
 	%Draw.visible = true
 	%Pass.visible = true
 	%DrawPile.set_emphasized(local_turn and phase == 1 and not _has_playable_card())
@@ -131,9 +121,7 @@ func _update_actions() -> void:
 			else:
 				_show_message("Sua vez — selecione uma carta.")
 		elif legal:
-			if cards_by_uid.size() - selected_uids.size() == 1 and not _uno_declared:
-				_show_message("Você ficará com uma carta. Declare UNO antes de jogar.")
-			elif selected_uids.size() > 1:
+			if selected_uids.size() > 1:
 				_show_message("%d cartas selecionadas. A última selecionada ficará no topo." % selected_uids.size())
 			else:
 				_show_message("Carta selecionada — clique em JOGAR CARTA.")
@@ -152,8 +140,21 @@ func _selection_can_survive(uid: int) -> bool:
 	return int(public_snapshot.get("phase", -1)) != 2 or uid == int(private_snapshot.get("drawn_uid", -2))
 
 func _on_private_snapshot(snapshot: Dictionary) -> void:
-	selected_uids.clear()
+	var preserved_selection: Array[int] = []
+	if _declaring_uno:
+		for uid: int in selected_uids:
+			preserved_selection.append(uid)
+	if not _declaring_uno:
+		selected_uids.clear()
 	super(snapshot)
+	if _declaring_uno:
+		selected_uids.clear()
+		for uid: int in preserved_selection:
+			if cards_by_uid.has(uid):
+				selected_uids.append(uid)
+		selected_uid = selected_uids.back() if not selected_uids.is_empty() else -1
+		_refresh_hand_states()
+		_update_actions()
 
 func _select_card(uid: int) -> void:
 	if pending_action != -1:
@@ -215,7 +216,15 @@ func _phase_text(phase: int) -> String:
 func _on_action_answered(answer: Dictionary) -> void:
 	var was_pending: bool = int(answer.get("client_action_id", -1)) == pending_action
 	var accepted: bool = bool(answer.get("accepted", false))
+	var was_declaration: bool = was_pending and _declaring_uno
 	super(answer)
+	if was_declaration:
+		_declaring_uno = false
+		if accepted:
+			_uno_declared = true
+			_show_message("UNO declarado!")
+		_update_actions()
+		return
 	if was_pending and accepted:
 		_uno_declared = false
 		selected_uids.clear()

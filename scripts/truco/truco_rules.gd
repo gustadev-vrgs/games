@@ -103,6 +103,8 @@ func validate_action(state: Dictionary, actor_id: int, action: Dictionary) -> Di
 		return ActionResult.rejected("INVALID_PHASE")
 	if state.players[state.current_index] != actor_id:
 		return ActionResult.rejected("NOT_YOUR_TURN")
+	if kind == "RUN":
+		return ActionResult.accepted()
 	if kind == "REQUEST_TRUCO":
 		if next_raise_value(int(state.accepted_value)) == 0 or state.last_raise_team == team:
 			return ActionResult.rejected("INVALID_TRUCO_RESPONSE")
@@ -149,7 +151,8 @@ func apply_action(state: Dictionary, actor_id: int, action: Dictionary, rng: Ran
 		"RUN":
 			state.responding_peer = actor_id
 			state.action_history.append({"type":"RUN","peer_id":actor_id,"team":team,"value":state.accepted_value})
-			_finish_hand(state, int(state.requesting_team), int(state.accepted_value), rng)
+			var winning_team: int = int(state.requesting_team) if state.phase == Phase.WAITING_TRUCO_RESPONSE else 1 - team
+			_finish_hand(state, winning_team, int(state.accepted_value), rng)
 		"PLAY_CARD":
 			_play_card(state, actor_id, int(action.card_uid), false)
 		"PLAY_CARD_FACE_DOWN":

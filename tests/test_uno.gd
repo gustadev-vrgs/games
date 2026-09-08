@@ -6,6 +6,8 @@ func run(t:TestHelpers)->void:
 	var top: Dictionary = state.discard.back() as Dictionary
 	var same: Dictionary = CardData.make(999,"uno",String(top.get("rank", "")),"", "blue" if String(top.get("color", ""))!="blue" else "red")
 	t.check(rules.is_playable(same,top,state.active_color),"mesmo número");t.check(rules.is_playable(CardData.make(998,"uno","","","","wild"),top,state.active_color),"wild")
+	_test_wild_draw_four_validation(t, rules)
+	_test_authoritative_uno_declaration(t, rules, rng)
 	t.equal(rules.validate_action(state,2,{"type":"DRAW_ONE"}).reason_code,"NOT_YOUR_TURN","fora do turno")
 	var version:int=state.state_version;rules.apply_action(state,1,{"type":"DRAW_ONE"},rng);t.equal(state.state_version,version+1,"versão incrementa")
 	var recycle_state: Dictionary = rules.create_initial_state([1,2], rng)
@@ -54,6 +56,36 @@ func run(t:TestHelpers)->void:
 	rules._advance(eight)
 	t.equal(eight.current_index, 7, "sentido inverso fecha ciclo 1 para 8")
 	_test_numeric_combinations(t, rules, rng)
+
+func _test_wild_draw_four_validation(t: TestHelpers, rules: UnoRules) -> void:
+	var state: Dictionary = _combination_state("5", "red", [["7", "blue", ""], ["", "", "wild_draw_four"]])
+	var plus_four: Dictionary = state.hands[1][1]
+	var action: Dictionary = {"type":"PLAY_CARD", "card_uid":plus_four.uid, "chosen_color":"green"}
+	t.check(rules.validate_action(state, 1, action).accepted, "+4 é permitido sem carta da cor ativa")
+	var public: Dictionary = rules.build_public_snapshot(state)
+	var private: Dictionary = rules.build_private_snapshot(state, 1)
+	t.check(ActionAvailability.uno_card_playable(public, private, plus_four, 1), "UI habilita +4 aceito pela autoridade")
+	var played: Dictionary = state.duplicate(true)
+	var opponent_count: int = played.hands[2].size()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 31
+	rules.apply_action(played, 1, action.merged({"declared_uno":true}), rng)
+	t.equal(played.active_color, "green", "+4 sincroniza a nova cor escolhida")
+	t.equal(played.hands[2].size(), opponent_count + 4, "+4 aplica quatro cartas ao próximo jogador")
+	t.equal(played.players[played.current_index], 1, "+4 pula o penalizado e continua o turno")
+	state.hands[1].append(_take_card(state.draw_pile, "9", "red", ""))
+	t.check(not rules.validate_action(state, 1, action).accepted, "+4 é rejeitado com carta da cor ativa")
+	private = rules.build_private_snapshot(state, 1)
+	t.check(not ActionAvailability.uno_card_playable(public, private, plus_four, 1), "UI rejeita +4 rejeitado pela autoridade")
+
+func _test_authoritative_uno_declaration(t: TestHelpers, rules: UnoRules, rng: RandomNumberGenerator) -> void:
+	var state: Dictionary = _combination_state("4", "yellow", [["4", "red", ""], ["8", "green", ""]])
+	var played_uid: int = int(state.hands[1][0].uid)
+	t.check(rules.apply_action(state, 1, {"type":"DECLARE_UNO", "card_uids":[played_uid]}, rng).accepted, "autoridade registra declaração manual válida")
+	t.equal(state.uno_declared_by, 1, "snapshot autoritativo identifica quem declarou UNO")
+	rules.apply_action(state, 1, {"type":"PLAY_CARD", "card_uid":played_uid}, rng)
+	t.equal(state.hands[1].size(), 1, "declaração sincronizada evita penalidade ao ficar com uma carta")
+	t.equal(state.uno_declared_by, -1, "declaração é consumida pela jogada seguinte")
 
 func _test_numeric_combinations(t: TestHelpers, rules: UnoRules, rng: RandomNumberGenerator) -> void:
 	var state: Dictionary = _combination_state("4", "yellow", [["4", "red", ""], ["4", "blue", ""], ["9", "green", ""]])
